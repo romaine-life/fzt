@@ -88,8 +88,7 @@ type State struct {
 	SyncIcon         string        // non-empty = show icon in top-right corner of border (e.g. "⟳" when sync available)
 	SyncNextCheck    int64         // unix timestamp — when the next background sync check fires (0 = disabled)
 	SyncTimerShown   bool          // true = show countdown to next sync check in the title bar
-	JWTSecret        string        // JWT signing secret from OS credential store, set by validate command
-	ConfigDir        string        // directory containing sync state files (.identity, identities.json, cache)
+	ConfigDir        string        // directory containing sync state files (menu cache, version)
 	EditMode         string        // active edit action: "add-after", "add-folder", "rename", "delete", "inspect", "" = none
 	EditBuffer       []rune        // text buffer for rename mode
 	EditTargetIdx    int           // item index being renamed (for restoring on cancel)
