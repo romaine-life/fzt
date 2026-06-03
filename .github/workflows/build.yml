@@ -1,7 +1,7 @@
 name: Build
 
 # Auto-trigger disabled — Claude-driven CI. Run manually via
-# `gh workflow run build.yml -R nelsong6/fzt` when ready to cut a new
+# `gh workflow run build.yml -R romaine-life/fzt` when ready to cut a new
 # release. Downstream consumers (fzt-frontend, fzt-terminal) are also
 # Claude-driven — bump their own go.mod via each repo's dispatch.yml.
 on:
@@ -43,7 +43,7 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: go build -ldflags="-X github.com/nelsong6/fzt/render.Version=${{ steps.version.outputs.version }}" -o fzt${{ matrix.ext }} ./cmd/fzt
+      - run: go build -ldflags="-X github.com/romaine-life/fzt/render.Version=${{ steps.version.outputs.version }}" -o fzt${{ matrix.ext }} ./cmd/fzt
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}

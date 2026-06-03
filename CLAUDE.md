@@ -2,7 +2,7 @@
 
 ## Overview
 
-fzt (fuzzy tiered) is a pure scoring and state engine: depth-aware tiered scoring, tree state management, input handling, and pluggable data sources. Written in Go. No TUI, no terminal rendering, no frontend concerns -- those live in `nelsong6/fzt-terminal`.
+fzt (fuzzy tiered) is a pure scoring and state engine: depth-aware tiered scoring, tree state management, input handling, and pluggable data sources. Written in Go. No TUI, no terminal rendering, no frontend concerns -- those live in `romaine-life/fzt-terminal`.
 
 ### Package structure
 
@@ -13,7 +13,7 @@ fzt (fuzzy tiered) is a pure scoring and state engine: depth-aware tiered scorin
 
 ### Ecosystem
 
-Interactive tools import fzt alongside `nelsong6/fzt-terminal` which provides terminal/browser renderers, style (Catppuccin, DOS font, CRT), and frontend behavior (command palette, identity, actions). See the architecture diagrams at `diagrams.romaine.life/fzt/final`.
+Interactive tools import fzt alongside `romaine-life/fzt-terminal` which provides terminal/browser renderers, style (Catppuccin, DOS font, CRT), and frontend behavior (command palette, identity, actions). See the architecture diagrams at `diagrams.romaine.life/fzt/final`.
 
 Cross-repo references:
 
