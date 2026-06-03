@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/nelsong6/fzt/core"
+	"github.com/romaine-life/fzt/core"
 )
 
 func main() {

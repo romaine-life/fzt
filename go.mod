@@ -1,4 +1,4 @@
-module github.com/nelsong6/fzt
+module github.com/romaine-life/fzt
 
 go 1.26.1
 

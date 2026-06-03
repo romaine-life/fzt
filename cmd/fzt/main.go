@@ -6,7 +6,7 @@ import (
 	"os"
 	"sort"
 
-	"github.com/nelsong6/fzt/core"
+	"github.com/romaine-life/fzt/core"
 )
 
 func main() {

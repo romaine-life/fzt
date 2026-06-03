@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/nelsong6/fzt/core"
+	"github.com/romaine-life/fzt/core"
 )
 
 // DrawFunc is a callback for rendering to a Canvas. The terminal frontend

@@ -53,7 +53,7 @@ type Config struct {
 	// (fzt-automate, fzt-picker, fzt) points at its own GitHub releases
 	// so the update pulls the right asset. Empty strings fall back to
 	// the fzt defaults for backward compat.
-	UpdateRepo        string // "owner/name", e.g. "nelsong6/fzt-automate"
+	UpdateRepo        string // "owner/name", e.g. "romaine-life/fzt-automate"
 	UpdateAssetPrefix string // release asset prefix, e.g. "fzt-automate" (builds "-<os>-<arch>[.exe]")
 	UpdateBinaryName  string // on-disk final name, e.g. "fzt-automate"
 }
