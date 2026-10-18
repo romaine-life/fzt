@@ -8,7 +8,6 @@ fzt (fuzzy tiered) is a pure scoring and state engine: depth-aware tiered scorin
 
 - **`core/`** -- Public library. Data types (`Item`, `ItemAction`, `TieredScore`, `StyledRune`), fuzzy scoring (`FuzzyMatch`, `ScoreItem`), column parsing (`ParseLines`, `ComputeWidths`, `FormatRow`), YAML loading (`LoadYAML`, `LoadYAMLFromString`), ANSI parsing (`ParseANSI`, `StripANSI`), tree state management (`State`, `TreeContext`, `PushScope`, `PopScope`, `FilterItems`, `TreeVisibleItems`, `UpdateQueryExpansion`, `SyncTreeCursorToTopMatch`, `BuildScopePath`, `ExpandToPath`, `SetTitle`, `ClearTitle`), tree editing (`AddItemAfter`, `AddChildTo`, `DeleteItem`, `CanDelete`, `SerializeTree`), key handlers (`HandleUnifiedKey`, `HandleKeyEvent`, `HandleTreeKey`, `HandleSearchKey`, `ClickUnifiedRow`, `syncQueryToCursor`, `handleRenameKey`), the `TreeProvider` interface for pluggable data sources, `DirProvider` for filesystem trees, `ListDriveRoots` (Windows), and `Config`.
 - **`render/`** -- Headless rendering infrastructure. `Canvas` interface, `MemScreen` (in-memory grid with snapshot/styled-snapshot output), `Session`/`NewTreeSession` (headless wrapper for WASM/testing), ANSI serialization (`ToANSI`), structured data API (`GetVisibleRows`, `GetPromptState`, `GetUIState`), `Version` variable.
-- **`cmd/fzt/`** -- Minimal scoring CLI: `echo lines | fzt "query"` -> ranked output. No TUI, no interaction.
 - **`cmd/ansicheck/`**, **`cmd/debuginput/`**, **`cmd/icontest/`** -- Dev utilities.
 
 ### Ecosystem
@@ -27,8 +26,10 @@ Repo: `D:\repos\fzt`
 ## Building
 
 ```
-go build -o fzt.exe ./cmd/fzt
+go build ./...
 ```
+
+This repo ships no binary; a release is a Go-module tag. The `fzt` CLI (interactive picker, plus `--filter` for non-interactive ranking) is `cmd/fzt` in `romaine-life/fzt-terminal`.
 
 Tests:
 ```
@@ -112,6 +113,10 @@ All in `core/input.go`:
 - `gopkg.in/yaml.v3` -- YAML tree loading.
 
 ## Change Log
+
+### 2026-10-18
+
+- Removed `cmd/fzt` (the scoring-only CLI) and stopped attaching binaries to releases. Since the 2026-04-07 split it had been shipped under the name `fzt`, so shell scripts piping a list into `fzt` expecting a picker got a ranker that read their flags as a query. The interactive CLI is restored in fzt-terminal's `cmd/fzt`; its `--filter "query"` covers the ranking use. Releases remain as module tags, now gated on `go build ./...` and `go test ./core/...`.
 
 ### 2026-04-20
 
