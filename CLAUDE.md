@@ -114,9 +114,13 @@ All in `core/input.go`:
 
 ## Change Log
 
-### 2026-10-18
+### 2026-10-18 (retire scoring CLI)
 
-- Removed `cmd/fzt` (the scoring-only CLI) and stopped attaching binaries to releases. Since the 2026-04-07 split it had been shipped under the name `fzt`, so shell scripts piping a list into `fzt` expecting a picker got a ranker that read their flags as a query. The interactive CLI is restored in fzt-terminal's `cmd/fzt`; its `--filter "query"` covers the ranking use. Releases remain as module tags, now gated on `go build ./...` and `go test ./core/...`.
+- Removed `cmd/fzt` (the scoring-only CLI) and stopped attaching binaries to releases. Since the 2026-04-07 split it had been shipped under the name `fzt`, so shell scripts piping a list into `fzt` expecting a picker got a ranker that read their flags as a query. The interactive CLI is restored in fzt-terminal's `cmd/fzt`; its `--filter "query"` covers the ranking use. Releases remain as module tags, now gated on `go build ./...` and `go test ./core/...`. Next version now comes from git tags, not releases: a bare `v0.2.74` tag with no release made the release-based count reuse it, attaching the IsDir release to the old commit (fixed by cutting v0.2.75).
+
+### 2026-10-18 (Item.IsDir)
+
+- Added `Item.IsDir`: a flat item that renders with the folder icon but stays a selectable leaf. `HasChildren` couldn't be reused because it also makes Enter push scope. Motivation: the `fzt` CLI's Tab-completion picker showed directories (`.\journal-biking`) with the file icon, because a piped list has no tree. The CLI sets it for lines that are directories on disk; fzt-terminal's renderer reads it.
 
 ### 2026-04-20
 
