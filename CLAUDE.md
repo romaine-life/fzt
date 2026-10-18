@@ -113,6 +113,10 @@ All in `core/input.go`:
 
 ## Change Log
 
+### 2026-10-18 (Item.IsDir)
+
+- Added `Item.IsDir`: a flat item that renders with the folder icon but stays a selectable leaf. `HasChildren` couldn't be reused because it also makes Enter push scope. Motivation: the `fzt` CLI's Tab-completion picker showed directories (`.\journal-biking`) with the file icon, because a piped list has no tree. The CLI sets it for lines that are directories on disk; fzt-terminal's renderer reads it.
+
 ### 2026-04-20
 
 **core/input.go**
