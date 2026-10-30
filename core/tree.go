@@ -50,6 +50,10 @@ type TreeContext struct {
 	TreeExpanded  map[int]bool
 	TreeCursor    int
 	TreeOffset    int
+	// TreeReveal asks the renderer to place the cursor's row a fixed distance
+	// below the top of the list, since only it knows how many rows fit. Set
+	// when a search or an opened folder picks the row, not by arrow keys.
+	TreeReveal    bool
 	SearchActive  bool
 	NavMode       bool
 	QueryExpanded map[int]bool
@@ -532,6 +536,7 @@ func SyncTreeCursorToTopMatch(s *State) {
 	for vi, row := range visible {
 		if row.ItemIdx == topIdx {
 			ctx.TreeCursor = vi
+			ctx.TreeReveal = !s.ScopedView
 			return
 		}
 	}
@@ -573,18 +578,18 @@ func PushScope(s *State, itemIdx int, cfg Config, searchCols []int) {
 	}
 	FilterItems(s, cfg, searchCols)
 	if !s.ScopedView {
-		scrollFolderToTop(s, itemIdx)
+		revealFolder(s, itemIdx)
 	}
 }
 
-// scrollFolderToTop puts a folder just opened in place on the first row of the
-// list, under the cursor, so the rows it opened below it are on screen.
-func scrollFolderToTop(s *State, itemIdx int) {
+// revealFolder puts the cursor on a folder just opened in place and asks the
+// renderer to place it (TreeReveal), so the rows it opened are on screen.
+func revealFolder(s *State, itemIdx int) {
 	ctx := s.TopCtx()
 	for vi, row := range TreeVisibleItems(s) {
 		if row.ItemIdx == itemIdx {
 			ctx.TreeCursor = vi
-			ctx.TreeOffset = vi
+			ctx.TreeReveal = true
 			return
 		}
 	}
