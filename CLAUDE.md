@@ -64,7 +64,7 @@ Items with the same name in different folders are uniquely searchable. Ancestor 
 - `HidePalette` suppresses the `:` palette entirely. When set, `InjectCommandFolder` early-returns — no `:` root row, no palette items in `AllItems`, so typing `:` can't reach them via search either. Set by consumers where the palette is meaningless (my-homepage's unauthenticated playground visitors, for whom edit/logout make no sense). Default false; fzt-automate / fzt-picker / authenticated homepage keep the palette visible.
 - `InitialDisplay` maps to `State.IdentityLabel` -- shown via "whoami > on" in the command palette.
 - `FoldersOnly` changes Enter key behavior: Enter on an already-scoped folder returns `"select:"` instead of no-op. Used by picker's folder-pick mode.
-- `ScopedView` (copied to `State.ScopedView` by `NewState`) makes the view one folder at a time: `TreeVisibleItems` lists only the innermost scope's direct children, entering a folder (Enter, Right, Space, click) pushes scope instead of expanding in place, Left pops it, search covers direct children only, and `ExpandToPath` pushes a scope per path segment. Each scope change leaves nothing under the cursor, so with `FoldersOnly` Enter on an empty query picks the folder you are in. Used by fzt-picker.
+- `ScopedView` (copied to `State.ScopedView` by `NewState`) makes the view one folder at a time: `TreeVisibleItems` lists only the innermost scope's direct children, entering a folder (Enter, Right, Space, click) pushes scope instead of expanding in place, Left pops it, search covers direct children only, and `ExpandToPath` pushes a scope per path segment. Each scope change leaves nothing under the cursor. With `FoldersOnly` too (a folder picker), Enter picks a folder rather than entering it: the cursor's folder, else the top match, else (empty query) the folder you are in; Right, Space, Tab or a click goes in. Used by fzt-picker.
 
 ### Per-character scoring (FuzzyMatch)
 
@@ -114,6 +114,10 @@ All in `core/input.go`:
 - `gopkg.in/yaml.v3` -- YAML tree loading.
 
 ## Change Log
+
+### 2026-10-29 (folder picker Enter)
+
+- In a scoped-view folder picker, Enter picks the highlighted or typed folder instead of entering it. Picking one meant entering it and pressing Enter again with nothing highlighted, and Shift+Enter (which commits the cursor's item) didn't reach the picker. Nelson: in a folder picker Enter should send the folder; navigating in is Right, Space, Tab or a click. File pickers keep Enter-enters-folders, where folders are never the answer. OpenProject FZT-51.
 
 ### 2026-10-29 (scoped view)
 

@@ -44,7 +44,9 @@ type Config struct {
 	// ScopedView shows only the folder you are in. Entering a folder replaces
 	// the view with its children instead of expanding it in place, Left goes
 	// up a level, and search covers the folder's direct children. With
-	// FoldersOnly, Enter with nothing under the cursor picks the folder itself.
+	// FoldersOnly, Enter picks a folder instead of entering it (the cursor's
+	// folder, the top match, or with neither the folder you are in), and
+	// Right, Space, Tab or a click goes in.
 	ScopedView bool
 	EnvTags []string // environment capabilities (e.g. "terminal", "wasm", "browser") — items with DisplayCondition are shown only if their tag is in this set
 	// Provider for lazy tree loading (e.g. DirProvider for file picker mode).

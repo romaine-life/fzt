@@ -529,6 +529,12 @@ func FormatOutput(item Item, cfg Config) string {
 	return strings.Join(item.Fields, "\t")
 }
 
+// picksFolders reports whether Enter picks folders instead of entering them:
+// a scoped-view folder picker, where Right, Space, Tab or a click goes in.
+func picksFolders(s *State, cfg Config) bool {
+	return s.ScopedView && cfg.FoldersOnly
+}
+
 // HandleTreeKey processes a key event when no query is active (tree navigation).
 func HandleTreeKey(s *State, key tcell.Key, ch rune, cfg Config, searchCols []int) (action string, switchToSearch bool) {
 	result, switchToSearch := HandleTreeKeyResult(s, key, ch, cfg, searchCols)
@@ -581,6 +587,9 @@ func HandleTreeKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchCol
 	case tcell.KeyEnter:
 		if ctx.TreeCursor >= 0 && ctx.TreeCursor < visLen {
 			row := visible[ctx.TreeCursor]
+			if row.Item.HasChildren && picksFolders(s, cfg) {
+				return selectActionResult(row.Item, cfg), false
+			}
 			if row.Item.HasChildren {
 				curScope := ctx.Scope[len(ctx.Scope)-1]
 				if curScope.ParentIdx == row.ItemIdx {
@@ -777,6 +786,9 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 		visible := TreeVisibleItems(s)
 		if ctx.TreeCursor >= 0 && ctx.TreeCursor < len(visible) {
 			row := visible[ctx.TreeCursor]
+			if row.Item.HasChildren && picksFolders(s, cfg) {
+				return selectActionResult(row.Item, cfg)
+			}
 			if row.Item.HasChildren {
 				curScope := ctx.Scope[len(ctx.Scope)-1]
 				if curScope.ParentIdx == row.ItemIdx {
@@ -805,6 +817,9 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 		// No cursor -- act on top match
 		if len(ctx.Filtered) > 0 {
 			selected := ctx.Filtered[0]
+			if selected.HasChildren && picksFolders(s, cfg) {
+				return selectActionResult(selected, cfg)
+			}
 			if selected.HasChildren {
 				idx := FindInAll(ctx.AllItems, selected)
 				if idx >= 0 {
