@@ -2,7 +2,6 @@ package core
 
 import (
 	"path/filepath"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -269,7 +268,7 @@ func NewState(items []Item, cfg Config) (*State, []int) {
 		}
 	}
 
-	rootItems := data
+	rootItems := DescendantsOf(data, -1)
 	if cfg.Tiered {
 		rootItems = RootItemsOf(data)
 	}
@@ -302,24 +301,28 @@ func NewState(items []Item, cfg Config) (*State, []int) {
 	return s, searchCols
 }
 
-// FindInAll finds the index of an item in allItems: the row with its depth,
-// parent and fields, so rows that share a name under different parents
-// (a session listed under two menus) stay apart.
+// FindInAll returns the index in allItems of a row copied out of it (a
+// ctx.Items or ctx.Filtered row), or -1 for a row that wasn't.
 func FindInAll(allItems []Item, item Item) int {
-	for i, ai := range allItems {
-		if ai.Depth == item.Depth && ai.ParentIdx == item.ParentIdx && slices.Equal(ai.Fields, item.Fields) {
-			return i
-		}
+	if item.Index < 0 || item.Index >= len(allItems) {
+		return -1
 	}
-	return -1
+	return item.Index
+}
+
+// at copies allItems[i] with its index set.
+func at(allItems []Item, i int) Item {
+	item := allItems[i]
+	item.Index = i
+	return item
 }
 
 // RootItemsOf returns only depth-0 items.
 func RootItemsOf(items []Item) []Item {
 	var out []Item
-	for _, item := range items {
+	for i, item := range items {
 		if item.Depth == 0 {
-			out = append(out, item)
+			out = append(out, at(items, i))
 		}
 	}
 	return out
@@ -327,15 +330,18 @@ func RootItemsOf(items []Item) []Item {
 
 // DescendantsOf returns all items under a given parent (or all items if parentIdx is -1).
 func DescendantsOf(allItems []Item, parentIdx int) []Item {
-	if parentIdx < 0 {
-		return allItems
-	}
 	var out []Item
+	if parentIdx < 0 {
+		for i := range allItems {
+			out = append(out, at(allItems, i))
+		}
+		return out
+	}
 	var collect func(idx int)
 	collect = func(idx int) {
 		for _, childIdx := range allItems[idx].Children {
 			if childIdx < len(allItems) {
-				out = append(out, allItems[childIdx])
+				out = append(out, at(allItems, childIdx))
 				collect(childIdx)
 			}
 		}
@@ -349,14 +355,13 @@ func DescendantsOfDepth(allItems []Item, parentIdx int, maxDepth int) []Item {
 	if parentIdx < 0 {
 		// From root: collect items within maxDepth levels
 		var out []Item
-		for _, item := range allItems {
+		for i, item := range allItems {
 			if item.Depth < maxDepth {
-				out = append(out, item)
+				out = append(out, at(allItems, i))
 			}
 		}
 		return out
 	}
-	parentDepth := allItems[parentIdx].Depth
 	var out []Item
 	var collect func(idx int, depth int)
 	collect = func(idx int, depth int) {
@@ -365,14 +370,13 @@ func DescendantsOfDepth(allItems []Item, parentIdx int, maxDepth int) []Item {
 		}
 		for _, childIdx := range allItems[idx].Children {
 			if childIdx < len(allItems) {
-				out = append(out, allItems[childIdx])
+				out = append(out, at(allItems, childIdx))
 				if depth < maxDepth {
 					collect(childIdx, depth+1)
 				}
 			}
 		}
 	}
-	_ = parentDepth
 	collect(parentIdx, 1)
 	return out
 }
@@ -383,7 +387,7 @@ func ChildrenOf(allItems []Item, parentIdx int) []Item {
 	var out []Item
 	for _, childIdx := range parent.Children {
 		if childIdx < len(allItems) {
-			out = append(out, allItems[childIdx])
+			out = append(out, at(allItems, childIdx))
 		}
 	}
 	return out
