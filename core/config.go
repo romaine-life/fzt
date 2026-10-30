@@ -41,6 +41,11 @@ type Config struct {
 	// visitors for whom "edit"/"logout" make no sense.
 	HidePalette bool
 	FoldersOnly      bool // folders are the selectable items — Enter on an already-scoped folder returns "select:" instead of no-op
+	// ScopedView shows only the folder you are in. Entering a folder replaces
+	// the view with its children instead of expanding it in place, Left goes
+	// up a level, and search covers the folder's direct children. With
+	// FoldersOnly, Enter with nothing under the cursor picks the folder itself.
+	ScopedView bool
 	EnvTags []string // environment capabilities (e.g. "terminal", "wasm", "browser") — items with DisplayCondition are shown only if their tag is in this set
 	// Provider for lazy tree loading (e.g. DirProvider for file picker mode).
 	// PushScope calls Provider.LoadChildren when entering a folder with no loaded children.

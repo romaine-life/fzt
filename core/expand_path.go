@@ -21,6 +21,20 @@ func ExpandToPath(s *State, targetPath string, cfg Config, searchCols []int) {
 		return
 	}
 
+	// Scoped view: enter each segment as a scope, landing inside the target
+	if s.ScopedView {
+		parentIdx := -1
+		for _, seg := range segments {
+			childIdx := findChild(ctx.AllItems, parentIdx, seg)
+			if childIdx < 0 {
+				break
+			}
+			PushScope(s, childIdx, cfg, searchCols)
+			parentIdx = childIdx
+		}
+		return
+	}
+
 	// Walk the tree, expanding each segment
 	parentIdx := -1
 	for _, seg := range segments {

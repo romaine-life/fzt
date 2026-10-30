@@ -69,6 +69,9 @@ func NewTreeSession(items []core.Item, cfg core.Config, w, h int, drawTree DrawT
 	ctx.QueryExpanded = make(map[int]bool)
 	ctx.TreeCursor = -1
 	ctx.TreeOffset = 0
+	if cfg.FocusedDir != "" && s.Provider != nil {
+		core.ExpandToPath(s, cfg.FocusedDir, cfg, searchCols)
+	}
 	return &Session{
 		state:      s,
 		cfg:        cfg,
