@@ -104,8 +104,8 @@ func TestScopedViewSearchCoversDirectChildrenOnly(t *testing.T) {
 	}
 }
 
-func TestScopedViewEnterOnTypedFolderEntersIt(t *testing.T) {
-	s, searchCols, cfg := scopedState(t, true)
+func TestScopedViewFileModeEnterOnTypedFolderEntersIt(t *testing.T) {
+	s, searchCols, cfg := scopedState(t, false)
 	typeText(t, s, cfg, searchCols, "repos")
 	press(t, s, cfg, searchCols, tcell.KeyEnter)
 	typeText(t, s, cfg, searchCols, "picker")
@@ -115,6 +115,27 @@ func TestScopedViewEnterOnTypedFolderEntersIt(t *testing.T) {
 	assertVisible(t, s, "windows")
 }
 
+func TestScopedViewFoldersOnlyEnterPicksHighlightedFolder(t *testing.T) {
+	s, searchCols, cfg := scopedState(t, true)
+	press(t, s, cfg, searchCols, tcell.KeyDown)
+	r := press(t, s, cfg, searchCols, tcell.KeyEnter)
+	if r.Action != "select:repos" || !r.HasItem || r.Item.Fields[0] != "repos" {
+		t.Fatalf("Enter on highlighted folder = %q (item %v), want select:repos", r.Action, r.Item.Fields)
+	}
+}
+
+func TestScopedViewFoldersOnlyEnterPicksTypedFolder(t *testing.T) {
+	s, searchCols, cfg := scopedState(t, true)
+	typeText(t, s, cfg, searchCols, "repos")
+	press(t, s, cfg, searchCols, tcell.KeyRight)
+	assertVisible(t, s, "fzt", "fzt-picker")
+	typeText(t, s, cfg, searchCols, "picker")
+	r := press(t, s, cfg, searchCols, tcell.KeyEnter)
+	if r.Action != "select:fzt-picker" {
+		t.Fatalf("Enter on typed folder = %q, want select:fzt-picker", r.Action)
+	}
+}
+
 func TestScopedViewFoldersOnlyEnterPicksCurrentFolder(t *testing.T) {
 	s, searchCols, cfg := scopedState(t, true)
 	if r := press(t, s, cfg, searchCols, tcell.KeyEnter); r.Action != "" {
@@ -122,10 +143,11 @@ func TestScopedViewFoldersOnlyEnterPicksCurrentFolder(t *testing.T) {
 	}
 
 	press(t, s, cfg, searchCols, tcell.KeyDown)
-	press(t, s, cfg, searchCols, tcell.KeyEnter)
+	press(t, s, cfg, searchCols, tcell.KeyRight)
+	assertVisible(t, s, "fzt", "fzt-picker")
 	r := press(t, s, cfg, searchCols, tcell.KeyEnter)
 	if r.Action != "select:repos" || !r.HasItem || r.Item.Fields[0] != "repos" {
-		t.Fatalf("second Enter = %q (item %v), want select:repos", r.Action, r.Item.Fields)
+		t.Fatalf("Enter in a folder with nothing highlighted = %q (item %v), want select:repos", r.Action, r.Item.Fields)
 	}
 }
 
@@ -151,7 +173,7 @@ func TestScopedViewClickEntersFolder(t *testing.T) {
 func TestQueryWithNoMatchLeavesNothingUnderCursor(t *testing.T) {
 	s, searchCols, cfg := scopedState(t, true)
 	press(t, s, cfg, searchCols, tcell.KeyDown)
-	press(t, s, cfg, searchCols, tcell.KeyEnter)
+	press(t, s, cfg, searchCols, tcell.KeyRight)
 
 	typeText(t, s, cfg, searchCols, "fzt-p")
 	typeText(t, s, cfg, searchCols, "qqq")
