@@ -572,6 +572,22 @@ func PushScope(s *State, itemIdx int, cfg Config, searchCols []int) {
 		resetScopedCursor(ctx)
 	}
 	FilterItems(s, cfg, searchCols)
+	if !s.ScopedView {
+		scrollFolderToTop(s, itemIdx)
+	}
+}
+
+// scrollFolderToTop puts a folder just opened in place on the first row of the
+// list, under the cursor, so the rows it opened below it are on screen.
+func scrollFolderToTop(s *State, itemIdx int) {
+	ctx := s.TopCtx()
+	for vi, row := range TreeVisibleItems(s) {
+		if row.ItemIdx == itemIdx {
+			ctx.TreeCursor = vi
+			ctx.TreeOffset = vi
+			return
+		}
+	}
 }
 
 // resetScopedCursor leaves a freshly entered scoped-view folder with nothing
