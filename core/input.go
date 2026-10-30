@@ -909,6 +909,7 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 			} else if row.Item.HasChildren {
 				if !ctx.TreeExpanded[row.ItemIdx] {
 					ctx.TreeExpanded[row.ItemIdx] = true
+					scrollFolderToTop(s, row.ItemIdx)
 				} else if ctx.TreeCursor+1 < len(visible) {
 					ctx.TreeCursor++
 				}
@@ -1032,6 +1033,9 @@ func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
 	}
 	if tr.Item.HasChildren {
 		ctx.TreeExpanded[tr.ItemIdx] = !ctx.TreeExpanded[tr.ItemIdx]
+		if ctx.TreeExpanded[tr.ItemIdx] {
+			scrollFolderToTop(s, tr.ItemIdx)
+		}
 		return noActionResult()
 	}
 	return selectActionResult(tr.Item, cfg)
