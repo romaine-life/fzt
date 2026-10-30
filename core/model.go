@@ -28,6 +28,7 @@ type Item struct {
 	Original      string         // original unsplit input line (set by ParseLines; empty for YAML/provider)
 	Children      []int          // indices of direct children in the flat AllItems slice
 	ParentIdx     int            // index of parent in flat AllItems slice (-1 for root). Drives ancestor matching in ScoreItem.
+	Index         int            // this row's own index in AllItems, set on the copies RootItemsOf, ChildrenOf, DescendantsOf and DescendantsOfDepth return, so ctx.Items and ctx.Filtered rows know which row they are.
 	HasChildren   bool           // true for folders. Distinct from len(Children)>0: lazy-loaded folders start with HasChildren=true but empty Children.
 	IsDir         bool           // render with the folder icon while staying a selectable leaf (no scope push). Set by the fzt CLI for input lines that are directories on disk.
 	Path          string         // breadcrumb path from YAML loading (e.g. "git › gitprune"). Set by flattenYAML.
