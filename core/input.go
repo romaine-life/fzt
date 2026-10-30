@@ -611,6 +611,10 @@ func HandleTreeKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchCol
 		return noActionResult(), false
 
 	case tcell.KeyLeft:
+		if s.ScopedView {
+			PopScope(s, cfg, searchCols)
+			return noActionResult(), false
+		}
 		ctx.NavMode = true
 		if ctx.TreeCursor >= 0 && ctx.TreeCursor < visLen {
 			row := visible[ctx.TreeCursor]
@@ -790,6 +794,14 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 			}
 			return selectActionResult(row.Item, cfg)
 		}
+		// Scoped view, no cursor, no query: the folder itself is the target
+		if s.ScopedView && len(ctx.Query) == 0 {
+			scope := ctx.Scope[len(ctx.Scope)-1].ParentIdx
+			if cfg.FoldersOnly && scope >= 0 {
+				return selectActionResult(ctx.AllItems[scope], cfg)
+			}
+			return noActionResult()
+		}
 		// No cursor -- act on top match
 		if len(ctx.Filtered) > 0 {
 			selected := ctx.Filtered[0]
@@ -845,6 +857,10 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 		return noActionResult()
 
 	case tcell.KeyLeft:
+		if s.ScopedView {
+			PopScope(s, cfg, searchCols)
+			return noActionResult()
+		}
 		// Tree navigation: collapse or move to parent
 		visible := TreeVisibleItems(s)
 		if ctx.TreeCursor >= 0 && ctx.TreeCursor < len(visible) {
@@ -873,7 +889,9 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 		visible := TreeVisibleItems(s)
 		if ctx.TreeCursor >= 0 && ctx.TreeCursor < len(visible) {
 			row := visible[ctx.TreeCursor]
-			if row.Item.HasChildren {
+			if row.Item.HasChildren && s.ScopedView {
+				PushScope(s, row.ItemIdx, cfg, searchCols)
+			} else if row.Item.HasChildren {
 				if !ctx.TreeExpanded[row.ItemIdx] {
 					ctx.TreeExpanded[row.ItemIdx] = true
 				} else if ctx.TreeCursor+1 < len(visible) {
@@ -989,6 +1007,14 @@ func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
 	}
 	ctx.TreeCursor = vi
 	tr := visible[vi]
+	if tr.Item.HasChildren && s.ScopedView {
+		searchCols := cfg.SearchCols
+		if len(searchCols) == 0 {
+			searchCols = cfg.Nth
+		}
+		PushScope(s, tr.ItemIdx, cfg, searchCols)
+		return noActionResult()
+	}
 	if tr.Item.HasChildren {
 		ctx.TreeExpanded[tr.ItemIdx] = !ctx.TreeExpanded[tr.ItemIdx]
 		return noActionResult()

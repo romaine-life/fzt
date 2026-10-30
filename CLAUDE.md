@@ -64,6 +64,7 @@ Items with the same name in different folders are uniquely searchable. Ancestor 
 - `HidePalette` suppresses the `:` palette entirely. When set, `InjectCommandFolder` early-returns — no `:` root row, no palette items in `AllItems`, so typing `:` can't reach them via search either. Set by consumers where the palette is meaningless (my-homepage's unauthenticated playground visitors, for whom edit/logout make no sense). Default false; fzt-automate / fzt-picker / authenticated homepage keep the palette visible.
 - `InitialDisplay` maps to `State.IdentityLabel` -- shown via "whoami > on" in the command palette.
 - `FoldersOnly` changes Enter key behavior: Enter on an already-scoped folder returns `"select:"` instead of no-op. Used by picker's folder-pick mode.
+- `ScopedView` (copied to `State.ScopedView` by `NewState`) makes the view one folder at a time: `TreeVisibleItems` lists only the innermost scope's direct children, entering a folder (Enter, Right, Space, click) pushes scope instead of expanding in place, Left pops it, search covers direct children only, and `ExpandToPath` pushes a scope per path segment. Each scope change leaves nothing under the cursor, so with `FoldersOnly` Enter on an empty query picks the folder you are in. Used by fzt-picker.
 
 ### Per-character scoring (FuzzyMatch)
 
@@ -113,6 +114,10 @@ All in `core/input.go`:
 - `gopkg.in/yaml.v3` -- YAML tree loading.
 
 ## Change Log
+
+### 2026-10-29 (scoped view)
+
+- Added `Config.ScopedView` for fzt-picker. The picker expanded folders in place under everything above them, so a folder's contents could land below the window, and the cursor-follow scroll didn't bring them up. Now a folder replaces the view. `render.NewTreeSession` applies `FocusedDir` as `tui.Run` already did, so the popup picker honors the start folder an app asks for. `SyncTreeCursorToTopMatch` clears the cursor when nothing matches; before, the cursor stayed on the last match and Enter acted on an item the query no longer matched.
 
 ### 2026-10-18 (retire scoring CLI)
 

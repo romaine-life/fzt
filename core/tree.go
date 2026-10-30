@@ -84,6 +84,7 @@ type State struct {
 	FrontendName     string        // frontend identifier (e.g. "automate"). Drives scope title ("automate ctl" vs "fzt ctl").
 	FrontendVersion  string        // frontend version string. Registered at index 0 of VersionRegistry.
 	HidePalette      bool          // suppress the visible `:` root row (commands stay reachable by typing `:`). Set from Config.HidePalette.
+	ScopedView       bool          // show only the current scope's children. Set from Config.ScopedView by NewState.
 	IdentityLabel    string        // loaded identity (e.g. "nelson"). Emitted as a one-shot status by the :whoami palette leaf.
 	SyncIcon         string        // non-empty = show icon in top-right corner of border (e.g. "⟳" when sync available)
 	SyncNextCheck    int64         // unix timestamp — when the next background sync check fires (0 = disabled)
@@ -284,6 +285,7 @@ func NewState(items []Item, cfg Config) (*State, []int) {
 		Contexts:         []TreeContext{rootCtx},
 		InspectTargetIdx: -1,
 		EditTargetIdx:    -1,
+		ScopedView:       cfg.ScopedView,
 	}
 
 	searchCols := cfg.SearchCols
@@ -385,6 +387,9 @@ func ChildrenOf(allItems []Item, parentIdx int) []Item {
 // instead of root (exclusive "takeover" view).
 func TreeVisibleItems(s *State) []TreeRow {
 	ctx := s.TopCtx()
+	if s.ScopedView {
+		return scopedVisibleItems(ctx)
+	}
 	// Check if any scope level is a hidden folder — if so, render from there
 	startIdx := -1
 	for _, level := range ctx.Scope[1:] {
@@ -401,6 +406,29 @@ func TreeVisibleItems(s *State) []TreeRow {
 		buildVisibleTree(s, startIdx, &rows)
 	} else {
 		buildVisibleTree(s, -1, &rows)
+	}
+	return rows
+}
+
+// scopedVisibleItems lists the direct children of the innermost scope, with
+// nothing expanded beneath them.
+func scopedVisibleItems(ctx *TreeContext) []TreeRow {
+	parentIdx := ctx.Scope[len(ctx.Scope)-1].ParentIdx
+	var children []int
+	if parentIdx < 0 {
+		for i, item := range ctx.AllItems {
+			if item.Depth == 0 {
+				children = append(children, i)
+			}
+		}
+	} else {
+		children = ctx.AllItems[parentIdx].Children
+	}
+	var rows []TreeRow
+	for _, idx := range children {
+		if idx < len(ctx.AllItems) && !ctx.AllItems[idx].Hidden {
+			rows = append(rows, TreeRow{Item: ctx.AllItems[idx], ItemIdx: idx})
+		}
 	}
 	return rows
 }
@@ -488,11 +516,12 @@ func UpdateQueryExpansion(s *State) {
 }
 
 // SyncTreeCursorToTopMatch moves the tree cursor to the top match position.
-// If the top match is hidden (not in visible rows), resets cursor to -1
-// so the "act on top match" fallback fires on Enter.
+// If nothing matches, or the top match is hidden (not in visible rows),
+// resets cursor to -1 so the "act on top match" fallback fires on Enter.
 func SyncTreeCursorToTopMatch(s *State) {
 	ctx := s.TopCtx()
 	if len(ctx.Filtered) == 0 {
+		ctx.TreeCursor = -1
 		return
 	}
 	topIdx := FindInAll(ctx.AllItems, ctx.Filtered[0])
@@ -539,7 +568,19 @@ func PushScope(s *State, itemIdx int, cfg Config, searchCols []int) {
 	ctx.Query = nil
 	ctx.Cursor = 0
 	ctx.QueryExpanded = make(map[int]bool)
+	if s.ScopedView {
+		resetScopedCursor(ctx)
+	}
 	FilterItems(s, cfg, searchCols)
+}
+
+// resetScopedCursor leaves a freshly entered scoped-view folder with nothing
+// under the cursor, so Enter picks the folder itself (FoldersOnly) and typing
+// searches it.
+func resetScopedCursor(ctx *TreeContext) {
+	ctx.TreeCursor = -1
+	ctx.TreeOffset = 0
+	ctx.NavMode = false
 }
 
 // ItemFullPath builds the filesystem path for a tree item by walking up the ParentIdx chain.
@@ -749,6 +790,11 @@ func PopScope(s *State, cfg Config, searchCols []int) {
 	ctx.Cursor = prev.Cursor
 	ctx.TreeCursor = prev.Index
 	ctx.TreeOffset = prev.Offset
+	if s.ScopedView {
+		ctx.Query = nil
+		ctx.Cursor = 0
+		resetScopedCursor(ctx)
+	}
 
 	if len(ctx.Scope) <= 1 && len(ctx.Query) == 0 {
 		ctx.SearchActive = false
@@ -809,7 +855,9 @@ func FilterItems(s *State, cfg Config, searchCols []int) {
 	searchPool := ctx.Items
 	if cfg.Tiered {
 		parentIdx := ctx.Scope[len(ctx.Scope)-1].ParentIdx
-		if cfg.SearchDepth > 0 {
+		if s.ScopedView {
+			searchPool = DescendantsOfDepth(ctx.AllItems, parentIdx, 1)
+		} else if cfg.SearchDepth > 0 {
 			searchPool = DescendantsOfDepth(ctx.AllItems, parentIdx, cfg.SearchDepth)
 		} else {
 			searchPool = DescendantsOf(ctx.AllItems, parentIdx)
