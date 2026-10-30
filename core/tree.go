@@ -2,6 +2,7 @@ package core
 
 import (
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -301,10 +302,12 @@ func NewState(items []Item, cfg Config) (*State, []int) {
 	return s, searchCols
 }
 
-// FindInAll finds the index of an item in allItems by matching Fields[0] and Depth.
+// FindInAll finds the index of an item in allItems: the row with its depth,
+// parent and fields, so rows that share a name under different parents
+// (a session listed under two menus) stay apart.
 func FindInAll(allItems []Item, item Item) int {
 	for i, ai := range allItems {
-		if ai.Depth == item.Depth && len(ai.Fields) > 0 && len(item.Fields) > 0 && ai.Fields[0] == item.Fields[0] {
+		if ai.Depth == item.Depth && ai.ParentIdx == item.ParentIdx && slices.Equal(ai.Fields, item.Fields) {
 			return i
 		}
 	}
