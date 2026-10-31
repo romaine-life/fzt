@@ -564,6 +564,14 @@ func PushScope(s *State, itemIdx int, cfg Config, searchCols []int) {
 	cur.Index = ctx.TreeCursor
 	cur.Offset = ctx.TreeOffset
 
+	// A volatile folder drops what it showed last time, so it loads again.
+	if vp, ok := s.Provider.(VolatileProvider); ok && vp.Volatile(ItemFullPath(ctx, itemIdx)) {
+		for _, c := range ctx.AllItems[itemIdx].Children {
+			dropTree(ctx, c)
+		}
+		ctx.AllItems[itemIdx].Children = nil
+	}
+
 	// Lazy load: if folder has no children yet and a provider exists, load them
 	if len(ctx.AllItems[itemIdx].Children) == 0 && s.Provider != nil {
 		parentPath := ItemFullPath(ctx, itemIdx)
@@ -700,6 +708,14 @@ func AddChildTo(ctx *TreeContext, parentIdx int, newItem Item) int {
 
 // DeleteItem soft-deletes an item and its children by hiding them
 // and removing from the parent's Children slice.
+// dropTree takes a row and everything under it out of the tree.
+func dropTree(ctx *TreeContext, idx int) {
+	ctx.AllItems[idx].Dropped = true
+	for _, c := range ctx.AllItems[idx].Children {
+		dropTree(ctx, c)
+	}
+}
+
 func DeleteItem(ctx *TreeContext, itemIdx int) {
 	if itemIdx < 0 || itemIdx >= len(ctx.AllItems) {
 		return
@@ -905,7 +921,7 @@ func FilterItems(s *State, cfg Config, searchCols []int) {
 	for _, item := range searchPool {
 		// Skip items inside hidden folders (e.g. command palette)
 		// unless we're scoped into that hidden folder
-		if hasHiddenAncestor(ctx.AllItems, item, ctx.Scope) {
+		if item.Dropped || hasHiddenAncestor(ctx.AllItems, item, ctx.Scope) {
 			continue
 		}
 		ancestors := GetAncestorNames(ctx.AllItems, item)

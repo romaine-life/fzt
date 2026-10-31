@@ -15,6 +15,15 @@ type TreeProvider interface {
 	LoadChildren(parentPath string) []Item
 }
 
+// VolatileProvider is a TreeProvider whose folders describe live state (the
+// open windows) that goes stale while a long-lived menu stays open. A folder
+// it calls volatile is read again every time it is entered, its old rows
+// dropped from the tree.
+type VolatileProvider interface {
+	TreeProvider
+	Volatile(parentPath string) bool
+}
+
 // DirProvider loads directory contents from the filesystem.
 type DirProvider struct {
 	// ExcludeDirs are directory names to skip (e.g., ".git", "node_modules").
