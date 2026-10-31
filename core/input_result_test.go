@@ -68,6 +68,17 @@ func TestClickUnifiedRowResultReportsClickedItem(t *testing.T) {
 	}
 }
 
+func TestClickUnifiedRowWithoutPromptBar(t *testing.T) {
+	s, _, cfg := testTreeState(t)
+	cfg.HidePromptBar = true
+	s.TopCtx().TreeExpanded[0] = true
+
+	// No search box above the rows: row 0 is the folder, row 1 its first child.
+	if result := ClickUnifiedRowResult(s, 1, cfg, 24); result.Action != "select:Wikipedia" {
+		t.Fatalf("action = %q, want select:Wikipedia", result.Action)
+	}
+}
+
 func TestPromptModeEmitsFrontendActionAndRestoresTreeState(t *testing.T) {
 	s, searchCols, cfg := testTreeState(t)
 	ctx := s.TopCtx()

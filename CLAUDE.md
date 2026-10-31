@@ -62,6 +62,7 @@ Items with the same name in different folders are uniquely searchable. Ancestor 
 - `DepthPenalty` is subtracted from Name tier score as `relativeDepth * DepthPenalty`. Relative depth is measured from current scope, not absolute. All callers use 5.
 - `FrontendName`/`FrontendVersion`/`FrontendCommands` are set by the ecosystem (fzt-terminal ApplyConfig), not the engine. They drive the two-level `:` palette via InjectCommandFolder.
 - `HidePalette` suppresses the `:` palette entirely. When set, `InjectCommandFolder` early-returns — no `:` root row, no palette items in `AllItems`, so typing `:` can't reach them via search either. Set by consumers where the palette is meaningless (my-homepage's unauthenticated playground visitors, for whom edit/logout make no sense). Default false; fzt-automate / fzt-picker / authenticated homepage keep the palette visible.
+- `HidePromptBar` is a renderer flag: the tree view starts at the rows, with no search box. The query, cursor, breadcrumb and ghost still live in the state and reach the host through `GetPromptState`; keys still go to the session. Set by a host that types the query into its own text box (nudge's `/` palette in its chat input), so there is one box, not two.
 - `InitialDisplay` maps to `State.IdentityLabel` -- shown via "whoami > on" in the command palette.
 - `FoldersOnly` changes Enter key behavior: Enter on an already-scoped folder returns `"select:"` instead of no-op. Used by picker's folder-pick mode.
 - `ScopedView` (copied to `State.ScopedView` by `NewState`) makes the view one folder at a time: `TreeVisibleItems` lists only the innermost scope's direct children, entering a folder (Enter, Right, Space, click) pushes scope instead of expanding in place, Left pops it, search covers direct children only, and `ExpandToPath` pushes a scope per path segment. Each scope change leaves nothing under the cursor. With `FoldersOnly` too (a folder picker), Enter picks a folder rather than entering it: the cursor's folder, else the top match, else (empty query) the folder you are in; Right, Space, Tab or a click goes in. Used by fzt-picker.
@@ -114,6 +115,10 @@ All in `core/input.go`:
 - `gopkg.in/yaml.v3` -- YAML tree loading.
 
 ## Change Log
+
+### 2026-10-30 (host-drawn query box)
+
+- `Config.HidePromptBar`: a host that already has a text box (nudge's chat input) draws the query there, from `GetPromptState`, and fzt-terminal's tree view skips its own search box. Nelson, on fzt in nudge: "use the chatbox that's being typed into, and get rid of our extra top text box". OpenProject FZT-58, NUDGE-2.
 
 ### 2026-10-29 (folder picker Enter)
 

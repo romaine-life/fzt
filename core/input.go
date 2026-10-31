@@ -1006,6 +1006,9 @@ func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
 	}
 
 	firstItemRow := borderOffset + 3 // prompt bar (top border + content + bottom border)
+	if cfg.HidePromptBar {
+		firstItemRow = borderOffset
+	}
 	if len(ctx.Headers) > 0 {
 		firstItemRow += 2 // header + divider
 	}

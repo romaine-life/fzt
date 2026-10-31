@@ -40,6 +40,10 @@ type Config struct {
 	// meaningless to the current user — e.g. unauthenticated homepage
 	// visitors for whom "edit"/"logout" make no sense.
 	HidePalette bool
+	// HidePromptBar leaves the search box out of the tree view: the host
+	// draws the query in its own text box, from Session.GetPromptState, and
+	// keeps sending keys to the session. Renderer-only.
+	HidePromptBar bool
 	FoldersOnly      bool // folders are the selectable items — Enter on an already-scoped folder returns "select:" instead of no-op
 	// ScopedView shows only the folder you are in. Entering a folder replaces
 	// the view with its children instead of expanding it in place, Left goes
