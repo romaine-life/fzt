@@ -105,6 +105,7 @@ type State struct {
 	EnvTags          []string      // environment capabilities for display condition filtering
 	Panel            Panel         // latest command result, shown above the prompt by a long-lived frontend (fzt-automate --system)
 	Frozen           bool          // a command is running: keys and clicks do nothing until the frontend unfreezes
+	Overruns         map[string]bool // item Path -> its last run printed more than PanelLines lines; renderers mark the row. The frontend owns and persists it.
 
 	// PromptMode temporarily takes over the prompt text box for a frontend-owned
 	// action without disturbing tree query/scope/cursor state.
