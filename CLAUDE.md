@@ -116,6 +116,10 @@ All in `core/input.go`:
 
 ## Change Log
 
+### 2026-10-30 (DirProvider follows links)
+
+- `DirProvider` resolves a symlink or junction to its target, so a folder reached through one has children instead of reading as a file. On macOS `/d` is a symlink (synthetic.conf), and fzt-picker's folder picker could not see it or enter `/d/repos`. OpenProject TMUX-21.
+
 ### 2026-10-30 (host-drawn query box)
 
 - `Config.HidePromptBar`: a host that already has a text box (nudge's chat input) draws the query there, from `GetPromptState`, and fzt-terminal's tree view skips its own search box. Nelson, on fzt in nudge: "use the chatbox that's being typed into, and get rid of our extra top text box". OpenProject FZT-58, NUDGE-2.
