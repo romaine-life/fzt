@@ -48,16 +48,24 @@ func (p *DirProvider) LoadChildren(parentPath string) []Item {
 		}
 
 		fullPath := filepath.Join(parentPath, name)
+		isDir := entry.IsDir()
+		// A link or junction reports its own type, not its target's, so a
+		// folder reached through one (macOS's /d, /tmp) would read as a file.
+		if !isDir && entry.Type()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+			if fi, err := os.Stat(fullPath); err == nil {
+				isDir = fi.IsDir()
+			}
+		}
 		item := Item{
 			Fields:      []string{name},
-			HasChildren: entry.IsDir(),
+			HasChildren: isDir,
 			ParentIdx:   -1, // set by caller
 		}
-		if !entry.IsDir() {
+		if !isDir {
 			item.Fields = append(item.Fields, fullPath)
 		}
 
-		if entry.IsDir() {
+		if isDir {
 			dirs = append(dirs, item)
 		} else {
 			files = append(files, item)
