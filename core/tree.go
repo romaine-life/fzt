@@ -103,6 +103,8 @@ type State struct {
 	InspectTargetIdx int           // item being inspected (-1 = none)
 	InspectItemIdxs  []int         // indices of temporary property items in AllItems
 	EnvTags          []string      // environment capabilities for display condition filtering
+	Panel            Panel         // latest command result, shown above the prompt by a long-lived frontend (fzt-automate --system)
+	Frozen           bool          // a command is running: keys and clicks do nothing until the frontend unfreezes
 
 	// PromptMode temporarily takes over the prompt text box for a frontend-owned
 	// action without disturbing tree query/scope/cursor state.
@@ -766,6 +768,12 @@ func SerializeTree(ctx *TreeContext) []interface{} {
 		}
 		if item.Hidden {
 			m["hidden"] = true
+		}
+		if item.Quick {
+			m["quick"] = true
+		}
+		if item.Input != "" {
+			m["input"] = item.Input
 		}
 
 		if len(item.Children) > 0 {

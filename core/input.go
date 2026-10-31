@@ -69,6 +69,16 @@ func handleRenameKey(s *State, key tcell.Key, ch rune) string {
 					} else {
 						parent.Action = &ItemAction{Type: "command", Target: newVal}
 					}
+				case "quick":
+					q, ok := ParseQuick(newVal)
+					if !ok {
+						s.SetTitle("quick is true or false", 2)
+						return ""
+					}
+					parent.Quick = q
+					newVal = FormatQuick(q)
+				case "input":
+					parent.Input = newVal
 				}
 				// Update the property item's display value
 				for len(target.Fields) < 2 {
@@ -156,6 +166,9 @@ func HandleUnifiedKey(s *State, key tcell.Key, ch rune, shift bool, cfg Config, 
 // HandleUnifiedKeyResult is like HandleUnifiedKey, but also returns the item
 // that produced a select action when one is known.
 func HandleUnifiedKeyResult(s *State, key tcell.Key, ch rune, shift bool, cfg Config, searchCols []int) ActionResult {
+	if s.Frozen {
+		return noActionResult()
+	}
 	ctx := s.TopCtx()
 
 	if s.PromptMode != "" {
@@ -333,6 +346,9 @@ func HandleKeyEvent(s *State, key tcell.Key, ch rune, shift bool, cfg Config, se
 // HandleKeyEventResult is like HandleKeyEvent, but also returns the item that
 // produced a select action when one is known.
 func HandleKeyEventResult(s *State, key tcell.Key, ch rune, shift bool, cfg Config, searchCols []int) ActionResult {
+	if s.Frozen {
+		return noActionResult()
+	}
 	ctx := s.TopCtx()
 	// Shift+Enter — universal confirm-select, parallel to the tree-mode handler.
 	if shift && key == tcell.KeyEnter {
@@ -996,7 +1012,7 @@ func ClickUnifiedRow(s *State, row int, cfg Config, h int) string {
 // ClickUnifiedRowResult is like ClickUnifiedRow, but also returns the item
 // that produced a select action when one is known.
 func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
-	if s.PromptMode != "" {
+	if s.PromptMode != "" || s.Frozen {
 		return noActionResult()
 	}
 	ctx := s.TopCtx()
@@ -1008,6 +1024,9 @@ func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
 	firstItemRow := borderOffset + 3 // prompt bar (top border + content + bottom border)
 	if cfg.HidePromptBar {
 		firstItemRow = borderOffset
+	}
+	if cfg.ShowPanel {
+		firstItemRow += PanelLines
 	}
 	if len(ctx.Headers) > 0 {
 		firstItemRow += 2 // header + divider
