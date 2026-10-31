@@ -33,10 +33,12 @@ type Item struct {
 	IsDir         bool           // render with the folder icon while staying a selectable leaf (no scope push). Set by the fzt CLI for input lines that are directories on disk.
 	Path          string         // breadcrumb path from YAML loading (e.g. "git › gitprune"). Set by flattenYAML.
 	Hidden        bool           // excluded from tree view unless in scope chain. Used for the `:` command palette folder.
+	Quick         bool           // a command that runs without taking over a window: a long-lived frontend runs it in place and shows its result in the panel.
+	Input         string         // non-empty = the command takes one argument, asked for in the prompt box before it runs; the value is the prompt's hint.
 	Action           *ItemAction // what happens on selection. nil = informational or folder.
 	DisplayCondition string      // env tag required to show this item (e.g. "terminal"). Empty = always show.
 	IsProperty    bool           // true for temporary property items created by inspect mode. Not serialized.
 	PropertyOf    int            // index of the item this property belongs to (-1 = not a property).
-	PropertyKey   string         // which property this item represents: "name", "description", "url", "action".
+	PropertyKey   string         // which property this item represents: "name", "description", "url", "action", "quick", "input".
 	Injected      bool           // set by client-side palette injection (see fzt-frontend.InjectCommandFolder). SerializeTree skips these so the `:` palette never gets PUT back to the cloud menu.
 }
