@@ -2,10 +2,14 @@ package core
 
 import "strings"
 
-// PanelLines is how many rows the result panel holds. A frontend that shows
-// the panel reserves exactly this many rows, empty or not, so the prompt and
-// tree never move when a result appears or clears.
+// PanelLines is how many lines of a result the panel holds.
 const PanelLines = 3
+
+// PanelRows is the panel's height on screen: its lines inside a box's top and
+// bottom border. A frontend that shows the panel reserves exactly this many
+// rows, empty or not, so the prompt and tree never move when a result appears
+// or clears.
+const PanelRows = PanelLines + 2
 
 // Panel styles, matching TitleStyle's colors.
 const (

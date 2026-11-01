@@ -97,7 +97,7 @@ func TestFrozenDropsKeysAndClicks(t *testing.T) {
 
 func TestClickRowsShiftByThePanel(t *testing.T) {
 	s, _, cfg := testTreeState(t)
-	// No border, prompt bar 3 rows: the first row is at 3, or at 3+PanelLines with the panel.
+	// No border, prompt bar 3 rows: the first row is at 3, or at 3+PanelRows with the panel.
 	if r := ClickUnifiedRowResult(s, 3, cfg, 20); r.Action != "" {
 		t.Fatalf("row 3 (a folder) emitted %q", r.Action)
 	}
@@ -110,9 +110,9 @@ func TestClickRowsShiftByThePanel(t *testing.T) {
 	if s.TopCtx().TreeCursor != -1 {
 		t.Fatalf("with the panel row 3 is a panel row, cursor moved to %d", s.TopCtx().TreeCursor)
 	}
-	ClickUnifiedRowResult(s, 3+PanelLines, cfg, 20)
+	ClickUnifiedRowResult(s, 3+PanelRows, cfg, 20)
 	if s.TopCtx().TreeCursor != 0 {
-		t.Fatalf("with the panel the first row is %d, cursor %d", 3+PanelLines, s.TopCtx().TreeCursor)
+		t.Fatalf("with the panel the first row is %d, cursor %d", 3+PanelRows, s.TopCtx().TreeCursor)
 	}
 }
 
