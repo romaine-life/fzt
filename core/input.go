@@ -27,6 +27,9 @@ func normalModeNavBinding(ch rune) (key tcell.Key, arrow string, ok bool) {
 // under the tree cursor. Called when navigating away from a search result
 // so the search bar follows the highlighted row.
 func syncQueryToCursor(ctx *TreeContext, visible []TreeRow) {
+	if TagSearchActive(ctx) {
+		return // the query is tags, not a row's name
+	}
 	if ctx.TreeCursor >= 0 && ctx.TreeCursor < len(visible) {
 		row := visible[ctx.TreeCursor]
 		if len(row.Item.Fields) > 0 {
@@ -774,6 +777,14 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 		return noActionResult()
 
 	case tcell.KeyTab:
+		if TagSearchActive(ctx) {
+			// Complete the last term to its tag, ready for the next one.
+			if completeTagTerm(ctx) {
+				FilterItems(s, cfg, searchCols)
+				SyncTreeCursorToTopMatch(s)
+			}
+			return noActionResult()
+		}
 		// Autocomplete: set query to the top match's name.
 		// If the match is a folder, push scope (same as typing name + Space).
 		if len(ctx.Filtered) > 0 && len(ctx.Filtered[0].Fields) > 0 {
