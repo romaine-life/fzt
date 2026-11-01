@@ -105,3 +105,24 @@ func findChild(allItems []Item, parentIdx int, name string) int {
 	}
 	return -1
 }
+
+// EnterFolder enters the folder at path (names from the root, matched as
+// findChild does) one level at a time, as the user would. It reports whether
+// the whole path was found; when it wasn't, the menu is left at the root.
+func EnterFolder(s *State, path []string, cfg Config, searchCols []int) bool {
+	ctx := s.TopCtx()
+	var idxs []int
+	parentIdx := -1
+	for _, name := range path {
+		childIdx := findChild(ctx.AllItems, parentIdx, name)
+		if childIdx < 0 || !ctx.AllItems[childIdx].HasChildren {
+			return false
+		}
+		idxs = append(idxs, childIdx)
+		parentIdx = childIdx
+	}
+	for _, idx := range idxs {
+		PushScope(s, idx, cfg, searchCols)
+	}
+	return len(idxs) > 0
+}
