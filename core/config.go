@@ -44,7 +44,7 @@ type Config struct {
 	// draws the query in its own text box, from Session.GetPromptState, and
 	// keeps sending keys to the session. Renderer-only.
 	HidePromptBar bool
-	// ShowPanel reserves PanelLines rows above the search box for State.Panel,
+	// ShowPanel reserves PanelRows rows above the search box for State.Panel,
 	// the latest command result (fzt-automate --system). Renderer layout, and
 	// the click row math here, account for it.
 	ShowPanel bool

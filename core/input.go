@@ -1026,7 +1026,7 @@ func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
 		firstItemRow = borderOffset
 	}
 	if cfg.ShowPanel {
-		firstItemRow += PanelLines
+		firstItemRow += PanelRows
 	}
 	if len(ctx.Headers) > 0 {
 		firstItemRow += 2 // header + divider
