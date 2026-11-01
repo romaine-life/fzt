@@ -67,6 +67,8 @@ Items with the same name in different folders are uniquely searchable. Ancestor 
 - `FoldersOnly` changes Enter key behavior: Enter on an already-scoped folder returns `"select:"` instead of no-op. Used by picker's folder-pick mode.
 - `ScopedView` (copied to `State.ScopedView` by `NewState`) makes the view one folder at a time: `TreeVisibleItems` lists only the innermost scope's direct children, entering a folder (Enter, Right, Space, click) pushes scope instead of expanding in place, Left pops it, search covers direct children only, and `ExpandToPath` pushes a scope per path segment. Each scope change leaves nothing under the cursor. With `FoldersOnly` too (a folder picker), Enter picks a folder rather than entering it: the cursor's folder, else the top match, else (empty query) the folder you are in; Right, Space, Tab or a click goes in. Used by fzt-picker.
 
+- `TagMode` (copied to `State.TagMode` by `NewState`; the `:` palette flips it at runtime) switches search to tags. `Item.Tags` holds an item's labels, set by the host. `FilterItems` resolves each query term to the closest tag in the search pool (highest `FuzzyMatch` score, then the shortest tag, then alphabetical), records the pairs in `TreeContext.TagTerms` (empty tag: not found), and keeps the items carrying every resolved tag; one unresolved term leaves no results. `TreeVisibleItems` lists the results flat, Up/Down leave the query alone, and Tab completes the last term to its tag plus a space. A pool with no tags, or a query starting with `:`, is searched as usual, so an untagged menu still works with the toggle on and the palette (where it turns off) stays reachable. `GetVisibleRows` reports each row's `tags` and `matchedTags`; `GetPromptState` reports `tagTerms`.
+
 ### Per-character scoring (FuzzyMatch)
 
 Left-to-right character scan: +1 per match, +2 if consecutive, +3 bonus at position 0 or after a word boundary (space, `/`, `-`, `_`, `>`).
@@ -115,6 +117,10 @@ All in `core/input.go`:
 - `gopkg.in/yaml.v3` -- YAML tree loading.
 
 ## Change Log
+
+### 2026-11-01 (tag search mode)
+
+- `Config.TagMode` / `State.TagMode` and `Item.Tags`: an opt-in search where each term is a tag. It finds items by what they are rather than what they are called, such as tmux's `switch-client` under `session`, across several categories at once, which a single folder tree can't express without a folder for every combination. Off by default; the `:` palette toggles it. OpenProject FZT-67.
 
 ### 2026-10-30 (DirProvider follows links)
 

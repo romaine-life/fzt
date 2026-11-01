@@ -41,5 +41,6 @@ type Item struct {
 	IsProperty    bool           // true for temporary property items created by inspect mode. Not serialized.
 	PropertyOf    int            // index of the item this property belongs to (-1 = not a property).
 	PropertyKey   string         // which property this item represents: "name", "description", "url", "action", "quick", "input".
+	Tags          []string       // labels a tag search matches (State.TagMode). Set by the host; the scorer ignores them.
 	Injected      bool           // set by client-side palette injection (see fzt-frontend.InjectCommandFolder). SerializeTree skips these so the `:` palette never gets PUT back to the cloud menu.
 }

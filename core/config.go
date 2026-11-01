@@ -56,6 +56,11 @@ type Config struct {
 	// folder, the top match, or with neither the folder you are in), and
 	// Right, Space, Tab or a click goes in.
 	ScopedView bool
+	// TagMode starts the session in tag search (State.TagMode): each query
+	// term resolves to the closest tag in the search pool, and the results are
+	// the items carrying every resolved tag, as a flat list. A pool with no
+	// tags, or a query starting with ':', is searched as usual.
+	TagMode bool
 	EnvTags []string // environment capabilities (e.g. "terminal", "wasm", "browser") — items with DisplayCondition are shown only if their tag is in this set
 	// Provider for lazy tree loading (e.g. DirProvider for file picker mode).
 	// PushScope calls Provider.LoadChildren when entering a folder with no loaded children.

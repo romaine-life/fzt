@@ -200,14 +200,16 @@ func ActionURL(result SessionAction) string {
 
 // VisibleRow describes a single row for DOM rendering.
 type VisibleRow struct {
-	Name             string `json:"name"`
-	Description      string `json:"description"`
-	Depth            int    `json:"depth"`
-	IsFolder         bool   `json:"isFolder"`
-	IsSelected       bool   `json:"isSelected"`
-	IsTopMatch       bool   `json:"isTopMatch"`
-	NameMatchIndices []int  `json:"nameMatchIndices"`
-	DescMatchIndices []int  `json:"descMatchIndices"`
+	Name             string   `json:"name"`
+	Description      string   `json:"description"`
+	Depth            int      `json:"depth"`
+	IsFolder         bool     `json:"isFolder"`
+	IsSelected       bool     `json:"isSelected"`
+	IsTopMatch       bool     `json:"isTopMatch"`
+	NameMatchIndices []int    `json:"nameMatchIndices"`
+	DescMatchIndices []int    `json:"descMatchIndices"`
+	Tags             []string `json:"tags"`
+	MatchedTags      []string `json:"matchedTags"` // the row's tags the current tag search resolved to
 }
 
 // PromptState describes the prompt bar state for DOM rendering.
@@ -219,6 +221,9 @@ type PromptState struct {
 	Cursor    int      `json:"cursor"`
 	Ghost     string   `json:"ghost"` // autocomplete ghost text
 	Hint      string   `json:"hint"`  // placeholder when empty
+	// TagTerms is each query term and the tag it resolved to (empty tag: not
+	// found), set while a tag search is running.
+	TagTerms []core.TagTerm `json:"tagTerms"`
 }
 
 // UIState describes chrome/metadata for DOM rendering.
@@ -264,6 +269,14 @@ func (sess *Session) GetVisibleRows() []VisibleRow {
 		if len(row.Item.MatchIndices) > 1 {
 			vr.DescMatchIndices = row.Item.MatchIndices[1]
 		}
+		vr.Tags = row.Item.Tags
+		if core.TagSearchActive(ctx) {
+			for _, t := range ctx.TagTerms {
+				if t.Tag != "" && row.Item.HasTag(t.Tag) {
+					vr.MatchedTags = append(vr.MatchedTags, t.Tag)
+				}
+			}
+		}
 
 		rows[i] = vr
 	}
@@ -308,7 +321,11 @@ func (sess *Session) GetPromptState() PromptState {
 	// Ghost autocomplete
 	ghost := ""
 	query := string(ctx.Query)
-	if len(ctx.Query) > 0 && len(ctx.Filtered) > 0 && len(ctx.Filtered[0].Fields) > 0 {
+	var tagTerms []core.TagTerm
+	if core.TagSearchActive(ctx) {
+		tagTerms = ctx.TagTerms
+		ghost = core.TagGhost(ctx)
+	} else if len(ctx.Query) > 0 && len(ctx.Filtered) > 0 && len(ctx.Filtered[0].Fields) > 0 {
 		name := ctx.Filtered[0].Fields[0]
 		if len([]rune(name)) > len(ctx.Query) && strings.EqualFold(string([]rune(name)[:len(ctx.Query)]), query) {
 			ghost = string([]rune(name)[len(ctx.Query):])
@@ -332,6 +349,7 @@ func (sess *Session) GetPromptState() PromptState {
 		Cursor:    ctx.Cursor,
 		Ghost:     ghost,
 		Hint:      hint,
+		TagTerms:  tagTerms,
 	}
 }
 

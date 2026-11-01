@@ -41,6 +41,9 @@ type TreeContext struct {
 	// Query
 	Query  []rune
 	Cursor int
+	// TagTerms is the current query's terms and the tags they resolved to,
+	// set by FilterItems when the results come from a tag search.
+	TagTerms []TagTerm
 
 	// Flat-mode selection
 	Index  int // selected item index in filtered list
@@ -89,6 +92,7 @@ type State struct {
 	FrontendVersion  string        // frontend version string. Registered at index 0 of VersionRegistry.
 	HidePalette      bool          // suppress the visible `:` root row (commands stay reachable by typing `:`). Set from Config.HidePalette.
 	ScopedView       bool          // show only the current scope's children. Set from Config.ScopedView by NewState.
+	TagMode          bool          // search by tag (see Config.TagMode). Set from Config.TagMode by NewState; the `:` palette flips it.
 	IdentityLabel    string        // loaded identity (e.g. "nelson"). Emitted as a one-shot status by the :whoami palette leaf.
 	SyncIcon         string        // non-empty = show icon in top-right corner of border (e.g. "⟳" when sync available)
 	SyncNextCheck    int64         // unix timestamp — when the next background sync check fires (0 = disabled)
@@ -293,6 +297,7 @@ func NewState(items []Item, cfg Config) (*State, []int) {
 		InspectTargetIdx: -1,
 		EditTargetIdx:    -1,
 		ScopedView:       cfg.ScopedView,
+		TagMode:          cfg.TagMode,
 	}
 
 	searchCols := cfg.SearchCols
@@ -401,6 +406,9 @@ func ChildrenOf(allItems []Item, parentIdx int) []Item {
 // instead of root (exclusive "takeover" view).
 func TreeVisibleItems(s *State) []TreeRow {
 	ctx := s.TopCtx()
+	if TagSearchActive(ctx) {
+		return tagResultRows(ctx)
+	}
 	if s.ScopedView {
 		return scopedVisibleItems(ctx)
 	}
@@ -511,7 +519,7 @@ func isVisibleHidden(ctx *TreeContext, idx int) bool {
 func UpdateQueryExpansion(s *State) {
 	ctx := s.TopCtx()
 	ctx.QueryExpanded = make(map[int]bool)
-	if len(ctx.Filtered) == 0 {
+	if len(ctx.Filtered) == 0 || TagSearchActive(ctx) {
 		return
 	}
 	topMatch := ctx.Filtered[0]
@@ -895,9 +903,26 @@ func hasHiddenAncestor(allItems []Item, item Item, scope []ScopeLevel) bool {
 	return false
 }
 
+// isSearchable excludes dropped items and items inside hidden folders (the
+// command palette) unless the user is scoped into that folder.
+func isSearchable(ctx *TreeContext, item Item) bool {
+	return !item.Dropped && !hasHiddenAncestor(ctx.AllItems, item, ctx.Scope)
+}
+
+func searchable(ctx *TreeContext, pool []Item) []Item {
+	var out []Item
+	for _, item := range pool {
+		if isSearchable(ctx, item) {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
 // FilterItems applies the current query to the state's items.
 func FilterItems(s *State, cfg Config, searchCols []int) {
 	ctx := s.TopCtx()
+	ctx.TagTerms = nil
 	query := string(ctx.Query)
 	if query == "" {
 		ctx.Filtered = make([]Item, len(ctx.Items))
@@ -916,12 +941,13 @@ func FilterItems(s *State, cfg Config, searchCols []int) {
 			searchPool = DescendantsOf(ctx.AllItems, parentIdx)
 		}
 	}
+	if s.TagMode && filterByTags(ctx, searchable(ctx, searchPool), query) {
+		return
+	}
 
 	var matched []Item
 	for _, item := range searchPool {
-		// Skip items inside hidden folders (e.g. command palette)
-		// unless we're scoped into that hidden folder
-		if item.Dropped || hasHiddenAncestor(ctx.AllItems, item, ctx.Scope) {
+		if !isSearchable(ctx, item) {
 			continue
 		}
 		ancestors := GetAncestorNames(ctx.AllItems, item)
