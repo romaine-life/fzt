@@ -104,6 +104,17 @@ func TestTagSearchPartialTermNarrowsWithinResults(t *testing.T) {
 	assertVisible(t, s, "find-session")
 }
 
+func TestTagSearchFindsARowByItsName(t *testing.T) {
+	s, cols, cfg := tagState(t, true)
+	// "move-window" is no tag, but it is the row's name.
+	typeQuery(t, s, cfg, cols, "move-window")
+	assertVisible(t, s, "move-window")
+	// An untagged row (a folder) is found by its name too.
+	s, cols, cfg = tagState(t, true)
+	typeQuery(t, s, cfg, cols, "panes")
+	assertVisible(t, s, "panes")
+}
+
 func TestTagSearchUnresolvedTermLeavesNothing(t *testing.T) {
 	s, cols, cfg := tagState(t, true)
 	typeQuery(t, s, cfg, cols, "kill zzz")
