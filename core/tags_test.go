@@ -249,3 +249,16 @@ func TestTagsLoadSaveAndEdit(t *testing.T) {
 		t.Fatalf("tags after save and reload = %q\n%s", got, out)
 	}
 }
+
+func TestTagSearchSpaceStartsNextTagEvenOnAFolder(t *testing.T) {
+	s, cols, cfg := tagState(t, true)
+	// "windows" is a folder's name, so the folder is the top row; Space must
+	// still type a space, not enter the folder.
+	typeQuery(t, s, cfg, cols, "windows kill")
+	if len(s.TopCtx().Scope) != 1 {
+		t.Fatalf("Space entered a folder during a tag search")
+	}
+	if q := string(s.TopCtx().Query); q != "windows kill" {
+		t.Fatalf("query = %q", q)
+	}
+}

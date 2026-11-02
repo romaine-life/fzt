@@ -982,8 +982,8 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 
 		ctx.NavMode = false
 
-		// Space on a folder -> enter it
-		if ch == ' ' {
+		// Space on a folder -> enter it; in a tag search Space starts the next tag
+		if ch == ' ' && !TagSearchActive(ctx) {
 			visible := TreeVisibleItems(s)
 			if ctx.TreeCursor >= 0 && ctx.TreeCursor < len(visible) {
 				row := visible[ctx.TreeCursor]
