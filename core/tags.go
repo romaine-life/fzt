@@ -19,6 +19,26 @@ func TagSearchActive(ctx *TreeContext) bool {
 	return len(ctx.TagTerms) > 0 && len(ctx.Query) > 0
 }
 
+// TagSearchReady reports whether a query typed now would run a tag search: tag
+// mode is on and the rows it would search hold a tag. Where none do, FilterItems
+// searches by name instead.
+func TagSearchReady(s *State, cfg Config) bool {
+	return s.TagMode && anyTagged(searchable(s.TopCtx(), querySearchPool(s, cfg)))
+}
+
+// SearchHint is the empty search bar's hint, the same in every host.
+func SearchHint(s *State, cfg Config) string {
+	ctx := s.TopCtx()
+	switch {
+	case TagSearchReady(s, cfg):
+		return "search by tag…"
+	case ctx.SearchActive || len(ctx.Scope) > 1:
+		return "search…"
+	default:
+		return "type to search…"
+	}
+}
+
 // searchTags is what a tag search matches an item by: its tags and its own
 // name, so typing a row's name finds that row.
 func searchTags(item Item) []string {
