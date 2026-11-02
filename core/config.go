@@ -45,7 +45,7 @@ type Config struct {
 	// keeps sending keys to the session. Renderer-only.
 	HidePromptBar bool
 	// ShowPanel reserves PanelRows rows above the search box for State.Panel,
-	// the latest command result (fzt-automate --system). Renderer layout, and
+	// the latest command result (fzt-automate --popup). Renderer layout, and
 	// the click row math here, account for it.
 	ShowPanel bool
 	FoldersOnly      bool // folders are the selectable items — Enter on an already-scoped folder returns "select:" instead of no-op
