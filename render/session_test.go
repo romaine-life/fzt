@@ -6,25 +6,19 @@ import (
 	"github.com/romaine-life/fzt/core"
 )
 
-func TestPromptStateHintNamesTagSearch(t *testing.T) {
+// Tag mode shows as fzt-terminal's prompt icon, not in the hint text (FZT-70).
+func TestPromptStateHintIgnoresTagMode(t *testing.T) {
 	items, err := core.LoadYAMLFromString(`
 - name: new-session
-- name: kill-window
+  tags: [session]
 `)
 	if err != nil {
 		t.Fatal(err)
 	}
-	items[0].Tags = []string{"session"}
-	for _, tc := range []struct {
-		tagMode bool
-		want    string
-	}{
-		{true, "search by tag…"},
-		{false, "type to search…"},
-	} {
-		sess := NewTreeSession(items, core.Config{Tiered: true, TagMode: tc.tagMode}, 80, 10, nil, nil)
-		if got := sess.GetPromptState().Hint; got != tc.want {
-			t.Errorf("tag mode %v: hint = %q, want %q", tc.tagMode, got, tc.want)
+	for _, tagMode := range []bool{true, false} {
+		sess := NewTreeSession(items, core.Config{Tiered: true, TagMode: tagMode}, 80, 10, nil, nil)
+		if got := sess.GetPromptState().Hint; got != "type to search…" {
+			t.Errorf("tag mode %v: hint = %q, want type to search…", tagMode, got)
 		}
 	}
 }

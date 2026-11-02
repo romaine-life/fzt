@@ -922,22 +922,6 @@ func searchable(ctx *TreeContext, pool []Item) []Item {
 	return out
 }
 
-// querySearchPool returns the items a query typed now is matched against.
-func querySearchPool(s *State, cfg Config) []Item {
-	ctx := s.TopCtx()
-	if !cfg.Tiered {
-		return ctx.Items
-	}
-	parentIdx := ctx.Scope[len(ctx.Scope)-1].ParentIdx
-	if s.ScopedView {
-		return DescendantsOfDepth(ctx.AllItems, parentIdx, 1)
-	}
-	if cfg.SearchDepth > 0 {
-		return DescendantsOfDepth(ctx.AllItems, parentIdx, cfg.SearchDepth)
-	}
-	return DescendantsOf(ctx.AllItems, parentIdx)
-}
-
 // FilterItems applies the current query to the state's items.
 func FilterItems(s *State, cfg Config, searchCols []int) {
 	ctx := s.TopCtx()
@@ -949,7 +933,17 @@ func FilterItems(s *State, cfg Config, searchCols []int) {
 		return
 	}
 
-	searchPool := querySearchPool(s, cfg)
+	searchPool := ctx.Items
+	if cfg.Tiered {
+		parentIdx := ctx.Scope[len(ctx.Scope)-1].ParentIdx
+		if s.ScopedView {
+			searchPool = DescendantsOfDepth(ctx.AllItems, parentIdx, 1)
+		} else if cfg.SearchDepth > 0 {
+			searchPool = DescendantsOfDepth(ctx.AllItems, parentIdx, cfg.SearchDepth)
+		} else {
+			searchPool = DescendantsOf(ctx.AllItems, parentIdx)
+		}
+	}
 	if s.TagMode && filterByTags(ctx, searchable(ctx, searchPool), query) {
 		return
 	}
