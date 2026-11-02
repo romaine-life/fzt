@@ -335,11 +335,7 @@ func (sess *Session) GetPromptState() PromptState {
 	// Hint
 	hint := ""
 	if len(ctx.Query) == 0 {
-		if ctx.SearchActive || len(ctx.Scope) > 1 {
-			hint = "search\u2026"
-		} else {
-			hint = "type to search\u2026"
-		}
+		hint = core.SearchHint(sess.state, sess.cfg)
 	}
 
 	return PromptState{
