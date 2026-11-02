@@ -40,7 +40,7 @@ type Item struct {
 	DisplayCondition string      // env tag required to show this item (e.g. "terminal"). Empty = always show.
 	IsProperty    bool           // true for temporary property items created by inspect mode. Not serialized.
 	PropertyOf    int            // index of the item this property belongs to (-1 = not a property).
-	PropertyKey   string         // which property this item represents: "name", "description", "url", "action", "quick", "input".
-	Tags          []string       // labels a tag search matches (State.TagMode). Set by the host; the scorer ignores them.
+	PropertyKey   string         // which property this item represents: "name", "description", "url", "action", "quick", "input", "tags".
+	Tags          []string       // labels a tag search matches (State.TagMode): a YAML entry's `tags`, or set by the host. The scorer ignores them.
 	Injected      bool           // set by client-side palette injection (see fzt-frontend.InjectCommandFolder). SerializeTree skips these so the `:` palette never gets PUT back to the cloud menu.
 }

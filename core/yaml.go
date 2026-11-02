@@ -18,6 +18,7 @@ type YAMLEntry struct {
 	Hidden      bool        `yaml:"hidden,omitempty"`
 	Quick       bool        `yaml:"quick,omitempty"`
 	Input       string      `yaml:"input,omitempty"`
+	Tags        []string    `yaml:"tags,omitempty"`
 	Children    interface{} `yaml:"children,omitempty"` // []YAMLEntry or string (file path)
 }
 
@@ -90,6 +91,7 @@ func flattenYAML(entries []YAMLEntry, baseDir string, depth int, parentIdx int, 
 			Hidden:      e.Hidden,
 			Quick:       e.Quick,
 			Input:       e.Input,
+			Tags:        e.Tags,
 			PropertyOf:  -1,
 		})
 

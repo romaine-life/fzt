@@ -82,6 +82,9 @@ func handleRenameKey(s *State, key tcell.Key, ch rune) string {
 					newVal = FormatQuick(q)
 				case "input":
 					parent.Input = newVal
+				case "tags":
+					parent.Tags = ParseTags(newVal)
+					newVal = FormatTags(parent.Tags)
 				}
 				// Update the property item's display value
 				for len(target.Fields) < 2 {
