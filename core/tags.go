@@ -15,13 +15,40 @@ func TagSearchActive(ctx *TreeContext) bool {
 	return len(ctx.TagTerms) > 0 && len(ctx.Query) > 0
 }
 
-// tagVocabulary returns the distinct tags carried by the pool, in first-seen
-// order.
+// searchTags is what a tag search matches an item by: its tags and its own
+// name, so typing a row's name finds that row.
+func searchTags(item Item) []string {
+	if len(item.Fields) == 0 || item.Fields[0] == "" || item.HasTag(item.Fields[0]) {
+		return item.Tags
+	}
+	return append(item.Tags[:len(item.Tags):len(item.Tags)], item.Fields[0])
+}
+
+func hasSearchTag(item Item, tag string) bool {
+	for _, t := range searchTags(item) {
+		if t == tag {
+			return true
+		}
+	}
+	return false
+}
+
+func anyTagged(pool []Item) bool {
+	for _, item := range pool {
+		if len(item.Tags) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// tagVocabulary returns the distinct search tags of the pool's items, in
+// first-seen order.
 func tagVocabulary(pool []Item) []string {
 	seen := map[string]bool{}
 	var vocab []string
 	for _, item := range pool {
-		for _, tag := range item.Tags {
+		for _, tag := range searchTags(item) {
 			if !seen[tag] {
 				seen[tag] = true
 				vocab = append(vocab, tag)
@@ -54,13 +81,14 @@ func resolveTag(term string, vocab []string) string {
 // filterByTags resolves the query's terms to tags left to right, each among
 // the tags of the pool items carrying every tag resolved before it, so a
 // partly typed term picks a tag that still narrows the results instead of
-// one that empties them. It keeps those items, in tree order; any unresolved
-// term leaves no results. It returns false, changing nothing, when the pool
-// has no tags or the query starts with ':', so that search runs as usual: an
+// one that empties them. An item's name counts as one of its tags. It keeps
+// those items, in tree order; any unresolved term leaves no results. It
+// returns false, changing nothing, when no pool item has tags or the query
+// starts with ':', so that search runs as usual: an
 // untagged menu stays searchable with tag mode on, and the `:` palette, where
 // tag mode is turned off, stays reachable by typing.
 func filterByTags(ctx *TreeContext, pool []Item, query string) bool {
-	if strings.HasPrefix(query, ":") || len(tagVocabulary(pool)) == 0 {
+	if strings.HasPrefix(query, ":") || !anyTagged(pool) {
 		return false
 	}
 
@@ -97,7 +125,7 @@ func filterByTags(ctx *TreeContext, pool []Item, query string) bool {
 func withTag(items []Item, tag string) []Item {
 	var out []Item
 	for _, item := range items {
-		if item.HasTag(tag) {
+		if hasSearchTag(item, tag) {
 			out = append(out, item)
 		}
 	}
