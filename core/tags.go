@@ -1,6 +1,10 @@
 package core
 
-import "strings"
+import (
+	"slices"
+	"strings"
+	"unicode"
+)
 
 // TagTerm is one query term in a tag search and the tag it resolved to.
 // Tag is empty when no tag in the search pool matches the term.
@@ -191,4 +195,21 @@ func TagGhost(ctx *TreeContext) string {
 		return ""
 	}
 	return last.Tag[len(last.Term):]
+}
+
+// ParseTags reads tags typed or stored as one string, separated by spaces or
+// commas, dropping repeats.
+func ParseTags(s string) []string {
+	var tags []string
+	for _, t := range strings.FieldsFunc(s, func(r rune) bool { return r == ',' || unicode.IsSpace(r) }) {
+		if !slices.Contains(tags, t) {
+			tags = append(tags, t)
+		}
+	}
+	return tags
+}
+
+// FormatTags is how the item editor shows tags: space separated.
+func FormatTags(tags []string) string {
+	return strings.Join(tags, " ")
 }

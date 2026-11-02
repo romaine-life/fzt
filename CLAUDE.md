@@ -67,7 +67,7 @@ Items with the same name in different folders are uniquely searchable. Ancestor 
 - `FoldersOnly` changes Enter key behavior: Enter on an already-scoped folder returns `"select:"` instead of no-op. Used by picker's folder-pick mode.
 - `ScopedView` (copied to `State.ScopedView` by `NewState`) makes the view one folder at a time: `TreeVisibleItems` lists only the innermost scope's direct children, entering a folder (Enter, Right, Space, click) pushes scope instead of expanding in place, Left pops it, search covers direct children only, and `ExpandToPath` pushes a scope per path segment. Each scope change leaves nothing under the cursor. With `FoldersOnly` too (a folder picker), Enter picks a folder rather than entering it: the cursor's folder, else the top match, else (empty query) the folder you are in; Right, Space, Tab or a click goes in. Used by fzt-picker.
 
-- `TagMode` (copied to `State.TagMode` by `NewState`; the `:` palette flips it at runtime) switches search to tags. `Item.Tags` holds an item's labels, set by the host. `FilterItems` resolves the query's terms left to right, each to the closest tag (highest `FuzzyMatch` score, then the shortest tag, then alphabetical) among the tags of the items carrying every tag resolved before it, so a partly typed term narrows the results rather than emptying them. An item's name counts as one of its tags, so typing a row's name finds it. It records the pairs in `TreeContext.TagTerms` (empty tag: not found), and keeps the items carrying every resolved tag; one unresolved term leaves no results. `TreeVisibleItems` lists the results flat, Up/Down leave the query alone, and Tab completes the last term to its tag plus a space. A pool with no tags, or a query starting with `:`, is searched as usual, so an untagged menu still works with the toggle on and the palette (where it turns off) stays reachable. `GetVisibleRows` reports each row's `tags` and `matchedTags`; `GetPromptState` reports `tagTerms`.
+- `TagMode` (copied to `State.TagMode` by `NewState`; the `:` palette flips it at runtime) switches search to tags. `Item.Tags` holds an item's labels: a YAML entry's `tags` list (kept by `SerializeTree`, edited as the item editor's `tags` property through `ParseTags`/`FormatTags`), or set by the host. `FilterItems` resolves the query's terms left to right, each to the closest tag (highest `FuzzyMatch` score, then the shortest tag, then alphabetical) among the tags of the items carrying every tag resolved before it, so a partly typed term narrows the results rather than emptying them. An item's name counts as one of its tags, so typing a row's name finds it. It records the pairs in `TreeContext.TagTerms` (empty tag: not found), and keeps the items carrying every resolved tag; one unresolved term leaves no results. `TreeVisibleItems` lists the results flat, Up/Down leave the query alone, and Tab completes the last term to its tag plus a space. A pool with no tags, or a query starting with `:`, is searched as usual, so an untagged menu still works with the toggle on and the palette (where it turns off) stays reachable. `GetVisibleRows` reports each row's `tags` and `matchedTags`; `GetPromptState` reports `tagTerms`.
 
 ### Per-character scoring (FuzzyMatch)
 
@@ -117,6 +117,10 @@ All in `core/input.go`:
 - `gopkg.in/yaml.v3` -- YAML tree loading.
 
 ## Change Log
+
+### 2026-11-01 (tags in YAML)
+
+- A YAML entry's `tags` list loads into `Item.Tags`, `SerializeTree` writes it back, and the item editor has a `tags` property, so a menu stored as YAML/JSON (the at menu) can carry tags and an in-menu edit keeps them. OpenProject FZT-67.
 
 ### 2026-11-01 (name is a tag)
 

@@ -800,6 +800,9 @@ func SerializeTree(ctx *TreeContext) []interface{} {
 		if item.Input != "" {
 			m["input"] = item.Input
 		}
+		if len(item.Tags) > 0 {
+			m["tags"] = item.Tags
+		}
 
 		if len(item.Children) > 0 {
 			var children []interface{}

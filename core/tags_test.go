@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/gdamore/tcell/v2"
+	"gopkg.in/yaml.v3"
 )
 
 // tagState is a small tmux-like palette: commands tagged by what they act on
@@ -205,5 +206,46 @@ func TestTagModeUntaggedMenuSearchesAsBefore(t *testing.T) {
 	}
 	if names := filteredNames(s); len(names) != 1 || !strings.HasPrefix(names[0], "merge") {
 		t.Fatalf("filtered = %v, want merge requests", names)
+	}
+}
+
+func TestTagsLoadSaveAndEdit(t *testing.T) {
+	items, err := LoadYAMLFromString(`
+- name: git
+  children:
+    - name: gitprune
+      action: gitprune
+      tags: [git, branch, cleanup]
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := FormatTags(items[1].Tags); got != "git branch cleanup" {
+		t.Fatalf("loaded tags = %q", got)
+	}
+	s, _ := NewState(items, Config{Tiered: true})
+	ctx := s.TopCtx()
+
+	// The item editor's tags property: spaces or commas, repeats dropped.
+	ctx.AllItems = append(ctx.AllItems, Item{Fields: []string{"tags", "git branch cleanup"}, IsProperty: true, PropertyOf: 1, PropertyKey: "tags"})
+	prop := len(ctx.AllItems) - 1
+	s.EditMode, s.EditTargetIdx, s.EditBuffer = "rename", prop, []rune("git, prune  git")
+	handleRenameKey(s, tcell.KeyEnter, 0)
+	if got := FormatTags(ctx.AllItems[1].Tags); got != "git prune" || ctx.AllItems[prop].Fields[1] != "git prune" {
+		t.Fatalf("edited tags = %q, shown %q", got, ctx.AllItems[prop].Fields[1])
+	}
+
+	// Saving keeps them, and the saved tree loads back with them.
+	saved := SerializeTree(ctx)
+	out, err := yaml.Marshal(saved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, err := LoadYAMLFromString(string(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := FormatTags(again[1].Tags); got != "git prune" {
+		t.Fatalf("tags after save and reload = %q\n%s", got, out)
 	}
 }
