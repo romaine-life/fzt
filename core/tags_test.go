@@ -17,10 +17,12 @@ func tagState(t *testing.T, tagMode bool) (*State, []int, Config) {
     - name: new-session
     - name: kill-session
     - name: switch-client
+    - name: find-session
 - name: windows
   children:
     - name: move-window
     - name: kill-window
+    - name: fg-window
 - name: panes
   children:
     - name: move-pane
@@ -38,6 +40,8 @@ func tagState(t *testing.T, tagMode bool) (*State, []int, Config) {
 		"move-window":   {"window", "move"},
 		"kill-window":   {"window", "kill"},
 		"move-pane":     {"pane", "move"},
+		"find-session":  {"session", "find"},
+		"fg-window":     {"window", "fg"},
 	}
 	for i := range items {
 		items[i].Tags = tags[items[i].Fields[0]]
@@ -84,7 +88,20 @@ func TestTagSearchFindsByTagNotInName(t *testing.T) {
 	s, cols, cfg := tagState(t, true)
 	typeQuery(t, s, cfg, cols, "session")
 	// switch-client has no "session" in its name; its tag finds it.
-	assertVisible(t, s, "new-session", "kill-session", "switch-client")
+	assertVisible(t, s, "new-session", "kill-session", "switch-client", "find-session")
+}
+
+func TestTagSearchPartialTermNarrowsWithinResults(t *testing.T) {
+	s, cols, cfg := tagState(t, true)
+	// Across the whole menu "f" is closest to "fg", which no session row
+	// has; among session rows it is "find", so the list narrows, not empties.
+	typeQuery(t, s, cfg, cols, "session f")
+	assertVisible(t, s, "find-session")
+	if got := s.TopCtx().TagTerms[1].Tag; got != "find" {
+		t.Fatalf("f resolved to %q, want find", got)
+	}
+	typeQuery(t, s, cfg, cols, "i")
+	assertVisible(t, s, "find-session")
 }
 
 func TestTagSearchUnresolvedTermLeavesNothing(t *testing.T) {
@@ -133,7 +150,7 @@ func TestTagSearchTabCompletesTerm(t *testing.T) {
 	if q := string(s.TopCtx().Query); q != "session " {
 		t.Fatalf("query after Tab = %q, want %q", q, "session ")
 	}
-	assertVisible(t, s, "new-session", "kill-session", "switch-client")
+	assertVisible(t, s, "new-session", "kill-session", "switch-client", "find-session")
 }
 
 func TestTagSearchPaletteStaysReachable(t *testing.T) {

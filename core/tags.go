@@ -51,33 +51,33 @@ func resolveTag(term string, vocab []string) string {
 	return best
 }
 
-// filterByTags resolves each query term to one tag and keeps the pool items
-// that carry every resolved tag, in tree order. Any unresolved term leaves no
-// results. It returns false, changing nothing, when the pool has no tags or
-// the query starts with ':', so that search runs as usual: an untagged menu
-// stays searchable with tag mode on, and the `:` palette, where tag mode is
-// turned off, stays reachable by typing.
+// filterByTags resolves the query's terms to tags left to right, each among
+// the tags of the pool items carrying every tag resolved before it, so a
+// partly typed term picks a tag that still narrows the results instead of
+// one that empties them. It keeps those items, in tree order; any unresolved
+// term leaves no results. It returns false, changing nothing, when the pool
+// has no tags or the query starts with ':', so that search runs as usual: an
+// untagged menu stays searchable with tag mode on, and the `:` palette, where
+// tag mode is turned off, stays reachable by typing.
 func filterByTags(ctx *TreeContext, pool []Item, query string) bool {
-	if strings.HasPrefix(query, ":") {
-		return false
-	}
-	vocab := tagVocabulary(pool)
-	if len(vocab) == 0 {
+	if strings.HasPrefix(query, ":") || len(tagVocabulary(pool)) == 0 {
 		return false
 	}
 
 	terms := strings.Fields(query)
 	resolved := make([]TagTerm, len(terms))
+	matching := pool
 	score := 0
 	unresolved := false
 	for i, term := range terms {
-		tag := resolveTag(term, vocab)
+		tag := resolveTag(term, tagVocabulary(matching))
 		resolved[i] = TagTerm{Term: term, Tag: tag}
 		if tag == "" {
 			unresolved = true
-		} else {
-			score += FuzzyMatch(tag, term).Score
+			continue // later terms still resolve, so each one's state is shown
 		}
+		score += FuzzyMatch(tag, term).Score
+		matching = withTag(matching, tag)
 	}
 	ctx.TagTerms = resolved
 	ctx.Filtered = nil
@@ -85,24 +85,23 @@ func filterByTags(ctx *TreeContext, pool []Item, query string) bool {
 		return true
 	}
 
-	for _, item := range pool {
-		if hasAllTags(item, resolved) {
-			m := item
-			m.Score = TieredScore{Name: score}
-			m.MatchIndices = make([][]int, len(item.Fields))
-			ctx.Filtered = append(ctx.Filtered, m)
-		}
+	for _, item := range matching {
+		m := item
+		m.Score = TieredScore{Name: score}
+		m.MatchIndices = make([][]int, len(item.Fields))
+		ctx.Filtered = append(ctx.Filtered, m)
 	}
 	return true
 }
 
-func hasAllTags(item Item, terms []TagTerm) bool {
-	for _, t := range terms {
-		if !item.HasTag(t.Tag) {
-			return false
+func withTag(items []Item, tag string) []Item {
+	var out []Item
+	for _, item := range items {
+		if item.HasTag(tag) {
+			out = append(out, item)
 		}
 	}
-	return true
+	return out
 }
 
 // HasTag reports whether the item carries tag.
