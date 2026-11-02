@@ -42,5 +42,6 @@ type Item struct {
 	PropertyOf    int            // index of the item this property belongs to (-1 = not a property).
 	PropertyKey   string         // which property this item represents: "name", "description", "url", "action", "quick", "input", "tags".
 	Tags          []string       // labels a tag search matches (State.TagMode): a YAML entry's `tags`, or set by the host. The scorer ignores them.
-	Injected      bool           // set by client-side palette injection (see fzt-frontend.InjectCommandFolder). SerializeTree skips these so the `:` palette never gets PUT back to the cloud menu.
+	Injected      bool           // supplied by the client, not the cloud menu: the `:` palette (fzt-frontend.InjectCommandFolder) or a host's own rows, such as fzt-automate's tmux folder. SerializeTree skips these so they never get PUT back to the cloud menu.
+	Palette       bool           // one of the `:` palette's own commands (fzt-frontend.InjectCommandFolder), run by fzt-frontend.HandleCommandAction rather than returned as a pick.
 }
