@@ -1,0 +1,40 @@
+name: Build
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: release-tag
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: |
+          go build ./...
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          go test ./...
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Create module release
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $last = git tag -l 'v0.2.*' --sort=-v:refname | Select-Object -First 1
+          $next = if ($last) { 'v0.2.' + ([int]$last.Split('.')[2] + 1) } else { 'v0.2.0' }
+          $sha = git rev-parse HEAD
+          $body = @{tag_name=$next; target_commitish=$sha; name=$next; body="Engine release. $(git log --oneline -1)"} | ConvertTo-Json
+          $api = "$env:GITHUB_SERVER_URL/api/v1/repos/$env:GITHUB_REPOSITORY"
+          $h = @{Authorization="token $env:TOKEN"}
+          $release = Invoke-RestMethod -Method Post "$api/releases" -Headers $h -ContentType application/json -Body $body
+          $tag = Invoke-RestMethod "$api/tags/$next" -Headers $h
+          if ($tag.commit.sha -ne $sha) { throw 'Release tag points to another commit' }
+          Write-Host "$($release.html_url) at $sha"
