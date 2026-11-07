@@ -307,29 +307,50 @@ func HandlePromptModeKeyResult(s *State, key tcell.Key, ch rune) ActionResult {
 		}
 		return actionResult("prompt:" + action + ":" + query)
 	case tcell.KeyBackspace, tcell.KeyBackspace2:
+		if s.PromptSelected > 0 {
+			s.deletePromptSelection()
+			break
+		}
 		if s.PromptCursor > 0 && len(s.PromptQuery) > 0 {
 			s.PromptQuery = append(s.PromptQuery[:s.PromptCursor-1], s.PromptQuery[s.PromptCursor:]...)
 			s.PromptCursor--
 		}
 	case tcell.KeyDelete:
+		if s.PromptSelected > 0 {
+			s.deletePromptSelection()
+			break
+		}
 		if s.PromptCursor >= 0 && s.PromptCursor < len(s.PromptQuery) {
 			s.PromptQuery = append(s.PromptQuery[:s.PromptCursor], s.PromptQuery[s.PromptCursor+1:]...)
 		}
 	case tcell.KeyLeft:
+		if s.PromptSelected > 0 {
+			s.PromptSelected, s.PromptCursor = 0, 0
+			break
+		}
 		if s.PromptCursor > 0 {
 			s.PromptCursor--
 		}
 	case tcell.KeyRight:
+		if s.PromptSelected > 0 {
+			s.PromptSelected = 0
+			break
+		}
 		if s.PromptCursor < len(s.PromptQuery) {
 			s.PromptCursor++
 		}
 	case tcell.KeyHome:
+		s.PromptSelected = 0
 		s.PromptCursor = 0
 	case tcell.KeyEnd:
+		s.PromptSelected = 0
 		s.PromptCursor = len(s.PromptQuery)
 	case tcell.KeyRune:
 		if ch == 0 {
 			return noActionResult()
+		}
+		if s.PromptSelected > 0 {
+			s.deletePromptSelection()
 		}
 		if s.PromptCursor < 0 || s.PromptCursor > len(s.PromptQuery) {
 			s.PromptCursor = len(s.PromptQuery)

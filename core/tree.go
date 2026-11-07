@@ -119,6 +119,7 @@ type State struct {
 	PromptPlaceholder string
 	PromptQuery       []rune
 	PromptCursor      int
+	PromptSelected    int // leading runes of PromptQuery selected: the next edit replaces them
 
 	// State inspector — passive-explorer mode for discovering reachable states.
 	// When StatesBannerOn is true, frontends render Describe() as a banner and
@@ -175,6 +176,7 @@ func (s *State) EnterPromptMode(mode, action string, icon rune, placeholder stri
 	s.PromptPlaceholder = placeholder
 	s.PromptQuery = nil
 	s.PromptCursor = 0
+	s.PromptSelected = 0
 }
 
 func (s *State) ExitPromptMode() {
@@ -184,6 +186,20 @@ func (s *State) ExitPromptMode() {
 	s.PromptPlaceholder = ""
 	s.PromptQuery = nil
 	s.PromptCursor = 0
+	s.PromptSelected = 0
+}
+
+// SetPromptText fills the open prompt with text to edit, its first selected
+// runes selected and the cursor after them.
+func (s *State) SetPromptText(text string, selected int) {
+	s.PromptQuery = []rune(text)
+	s.PromptSelected = min(max(selected, 0), len(s.PromptQuery))
+	s.PromptCursor = s.PromptSelected
+}
+
+func (s *State) deletePromptSelection() {
+	s.PromptQuery = append(s.PromptQuery[:0], s.PromptQuery[s.PromptSelected:]...)
+	s.PromptSelected, s.PromptCursor = 0, 0
 }
 
 // ClearTitle removes the title override and any ambient display.
