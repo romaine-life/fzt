@@ -135,6 +135,10 @@ type State struct {
 	// user can see even when content is unchanged).
 	PulseUntil int64
 
+	// TitleUntilKey makes TitleOverride a notice: the next key or click
+	// clears it, giving the title back. Set by SetNotice.
+	TitleUntilKey bool
+
 	// Self-update target (mirrored from Config by ApplyConfig). fzt-terminal's
 	// RunUpdate reads these. Empty = fzt defaults.
 	UpdateRepo        string
@@ -158,6 +162,7 @@ func (s *State) SetTitle(msg string, style int) {
 	s.TitleOverride = msg
 	s.TitleStyle = style
 	s.SyncTimerShown = false
+	s.TitleUntilKey = false
 	if isRepeat {
 		s.PulseUntil = time.Now().UnixMilli() + PulseDurationMs
 	}
@@ -207,6 +212,21 @@ func (s *State) ClearTitle() {
 	s.TitleOverride = ""
 	s.TitleStyle = 0
 	s.SyncTimerShown = false
+	s.TitleUntilKey = false
+}
+
+// SetNotice shows a title message until the next key or click: something the
+// person should see once, such as a start folder that couldn't be reached.
+func (s *State) SetNotice(msg string, style int) {
+	s.SetTitle(msg, style)
+	s.TitleUntilKey = true
+}
+
+// inputArrived clears a notice: a key or click means it has been seen.
+func (s *State) inputArrived() {
+	if s.TitleUntilKey {
+		s.ClearTitle()
+	}
 }
 
 // Describe returns a one-line snapshot of the user-visible state. Used by

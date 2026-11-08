@@ -175,6 +175,7 @@ func HandleUnifiedKeyResult(s *State, key tcell.Key, ch rune, shift bool, cfg Co
 	if s.Frozen {
 		return noActionResult()
 	}
+	s.inputArrived()
 	ctx := s.TopCtx()
 
 	if s.PromptMode != "" {
@@ -376,6 +377,7 @@ func HandleKeyEventResult(s *State, key tcell.Key, ch rune, shift bool, cfg Conf
 	if s.Frozen {
 		return noActionResult()
 	}
+	s.inputArrived()
 	ctx := s.TopCtx()
 	// Shift+Enter — universal confirm-select, parallel to the tree-mode handler.
 	if shift && key == tcell.KeyEnter {
@@ -1050,6 +1052,7 @@ func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
 	if s.PromptMode != "" || s.Frozen {
 		return noActionResult()
 	}
+	s.inputArrived()
 	ctx := s.TopCtx()
 	borderOffset := 0
 	if cfg.Border {

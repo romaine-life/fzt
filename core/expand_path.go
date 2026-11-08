@@ -8,7 +8,10 @@ import (
 // ExpandToPath pre-expands the tree along the given filesystem path.
 // For each segment, it loads children (via Provider if set) and expands the folder.
 // The final segment's children are loaded so the user lands inside the target directory.
-func ExpandToPath(s *State, targetPath string, cfg Config, searchCols []int) {
+// When a segment isn't there (deleted, or left out by the provider), it stops at the
+// last folder it found, says so in the title until the next key or click, and
+// reports false.
+func ExpandToPath(s *State, targetPath string, cfg Config, searchCols []int) bool {
 	ctx := s.TopCtx()
 	if ctx.TreeExpanded == nil {
 		ctx.TreeExpanded = make(map[int]bool)
@@ -18,7 +21,11 @@ func ExpandToPath(s *State, targetPath string, cfg Config, searchCols []int) {
 	targetPath = filepath.Clean(targetPath)
 	segments := splitPath(targetPath)
 	if len(segments) == 0 {
-		return
+		return true
+	}
+	unreached := func() bool {
+		s.SetNotice("no folder "+targetPath, 2)
+		return false
 	}
 
 	// Scoped view: enter each segment as a scope, landing inside the target
@@ -27,12 +34,12 @@ func ExpandToPath(s *State, targetPath string, cfg Config, searchCols []int) {
 		for _, seg := range segments {
 			childIdx := findChild(ctx.AllItems, parentIdx, seg)
 			if childIdx < 0 {
-				break
+				return unreached()
 			}
 			PushScope(s, childIdx, cfg, searchCols)
 			parentIdx = childIdx
 		}
-		return
+		return true
 	}
 
 	// Walk the tree, expanding each segment
@@ -41,7 +48,8 @@ func ExpandToPath(s *State, targetPath string, cfg Config, searchCols []int) {
 		// Find the matching child
 		childIdx := findChild(ctx.AllItems, parentIdx, seg)
 		if childIdx < 0 {
-			break
+			ctx.Items = RootItemsOf(ctx.AllItems)
+			return unreached()
 		}
 
 		// Load children if needed (lazy provider)
@@ -58,6 +66,7 @@ func ExpandToPath(s *State, targetPath string, cfg Config, searchCols []int) {
 
 	// Update items to reflect the expanded state
 	ctx.Items = RootItemsOf(ctx.AllItems)
+	return true
 }
 
 // splitPath splits a filesystem path into its components.
