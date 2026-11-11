@@ -79,9 +79,8 @@ func TestTagSearchIntersectsResolvedTags(t *testing.T) {
 	typeQuery(t, s, cfg, cols, " win")
 	assertVisible(t, s, "move-window")
 	got := s.TopCtx().TagTerms
-	want := []TagTerm{{"move", "move"}, {"win", "window"}}
-	if len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
-		t.Fatalf("TagTerms = %v, want %v", got, want)
+	if len(got) != 2 || got[0].Term != "move" || got[0].Tag != "move" || got[1].Term != "win" || got[1].Tag != "window" {
+		t.Fatalf("TagTerms = %v, want move -> move and win -> window", got)
 	}
 }
 
@@ -136,9 +135,76 @@ func TestTagSearchResultsAreFlat(t *testing.T) {
 	}
 }
 
-func TestTagSearchExactTagBeatsLongerOne(t *testing.T) {
-	if got := resolveTag("pane", []string{"panes-extra", "pane"}); got != "pane" {
-		t.Fatalf("resolveTag = %q, want pane", got)
+func TestTagSearchTabTargetIsTheShortestTag(t *testing.T) {
+	tags := tagsStartingWith("pane", []string{"panes-extra", "Pane-b", "pane", "window"}, nil)
+	if strings.Join(tags, ",") != "panes-extra,Pane-b,pane" {
+		t.Fatalf("tags starting with pane = %v", tags)
+	}
+	if got := shortestTag(tags); got != "pane" {
+		t.Fatalf("shortestTag = %q, want pane", got)
+	}
+}
+
+// A row leaves the results only once what is typed rules it out: a word
+// matches every row with a tag starting with it, so each added letter keeps a
+// subset of what was shown, and a row whose name only holds the letters
+// scattered ("Resize the pane left" for rel) never matches (FZT-80: re showed
+// two rows, then rel showed a binding that wasn't among them).
+func TestTagSearchTypingOnlyNarrows(t *testing.T) {
+	items, err := LoadYAMLFromString(`
+- name: tmux
+  children:
+    - name: claude-for-this-app
+      tags: [claude, repo]
+    - name: reload-app
+      tags: [reload, restart]
+    - name: claude-relaunch
+      tags: [claude, relaunch]
+    - name: Resize the pane left
+      tags: [resize, pane]
+    - name: kill-session
+      tags: [kill, session]
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var prev []string
+	for _, step := range []struct {
+		q    string
+		want []string
+	}{
+		{"r", []string{"claude-for-this-app", "reload-app", "claude-relaunch", "Resize the pane left"}},
+		{"re", []string{"claude-for-this-app", "reload-app", "claude-relaunch", "Resize the pane left"}},
+		{"rel", []string{"reload-app", "claude-relaunch"}},
+		{"relo", []string{"reload-app"}},
+		{"reloz", nil},
+	} {
+		cfg := Config{Tiered: true, TagMode: true, DepthPenalty: 5}
+		s, cols := NewState(items, cfg)
+		s.TopCtx().TreeExpanded = make(map[int]bool)
+		typeQuery(t, s, cfg, cols, step.q)
+		got := filteredNames(s)
+		if strings.Join(got, ",") != strings.Join(step.want, ",") {
+			t.Fatalf("%q shows %v, want %v", step.q, got, step.want)
+		}
+		for _, name := range got {
+			if prev != nil && !strings.Contains(","+strings.Join(prev, ",")+",", ","+name+",") {
+				t.Fatalf("%q shows %s, which the shorter query didn't", step.q, name)
+			}
+		}
+		prev = got
+	}
+}
+
+// A finished word's tags are locked in: the next word doesn't match them
+// again, so "session s" narrows by another tag starting with s, not by
+// session itself.
+func TestTagSearchFinishedWordsTagsAreLockedIn(t *testing.T) {
+	s, cols, cfg := tagState(t, true)
+	typeQuery(t, s, cfg, cols, "session s")
+	assertVisible(t, s, "switch-client")
+	if got := s.TopCtx().TagTerms[1].Tags; strings.Join(got, ",") != "switch,switch-client" {
+		t.Fatalf("s matched %v, want switch and switch-client, not session again", got)
 	}
 }
 

@@ -6,11 +6,13 @@ import (
 	"unicode"
 )
 
-// TagTerm is one query term in a tag search and the tag it resolved to.
-// Tag is empty when no tag in the search pool matches the term.
+// TagTerm is one query term in a tag search and the tags it matched: every
+// tag that starts with it. Tag is the shortest of them, which Tab completes
+// to; both are empty when no tag in the search pool starts with the term.
 type TagTerm struct {
-	Term string `json:"term"`
-	Tag  string `json:"tag"`
+	Term string   `json:"term"`
+	Tag  string   `json:"tag"`
+	Tags []string `json:"tags"`
 }
 
 // TagSearchActive reports whether the context's current results come from a
@@ -77,35 +79,41 @@ func tagVocabulary(pool []Item) []string {
 	return vocab
 }
 
-// resolveTag returns the tag in vocab that best matches term: the highest
-// FuzzyMatch score, then the shortest tag (so an exact tag beats a longer one
-// it prefixes), then alphabetical order. Empty when nothing matches.
-func resolveTag(term string, vocab []string) string {
-	best, bestScore := "", 0
+// tagsStartingWith returns the tags in vocab that start with term, ignoring
+// case, leaving out those in taken. Typing another letter can only drop tags
+// from this list, never add one.
+func tagsStartingWith(term string, vocab []string, taken map[string]bool) []string {
+	var out []string
 	for _, tag := range vocab {
-		m := FuzzyMatch(tag, term)
-		if m == nil {
-			continue
+		if !taken[tag] && len(tag) >= len(term) && strings.EqualFold(tag[:len(term)], term) {
+			out = append(out, tag)
 		}
-		switch {
-		case m.Score > bestScore,
-			m.Score == bestScore && len(tag) < len(best),
-			m.Score == bestScore && len(tag) == len(best) && tag < best:
-			best, bestScore = tag, m.Score
+	}
+	return out
+}
+
+// shortestTag is the tag Tab completes to: the shortest, then alphabetical.
+func shortestTag(tags []string) string {
+	best := ""
+	for _, tag := range tags {
+		if best == "" || len(tag) < len(best) || len(tag) == len(best) && tag < best {
+			best = tag
 		}
 	}
 	return best
 }
 
-// filterByTags resolves the query's terms to tags left to right, each among
-// the tags of the pool items carrying every tag resolved before it, so a
-// partly typed term picks a tag that still narrows the results instead of
-// one that empties them. An item's name counts as one of its tags. It keeps
-// those items, in tree order; any unresolved term leaves no results. It
-// returns false, changing nothing, when no pool item has tags or the query
-// starts with ':', so that search runs as usual: an
-// untagged menu stays searchable with tag mode on, and the `:` palette, where
-// tag mode is turned off, stays reachable by typing.
+// filterByTags keeps the pool items that every query term matches. A term
+// matches an item carrying any tag that starts with it, an item's name
+// counting as one of its tags, so a row leaves the results only once what is
+// typed rules it out: each added letter or term can only narrow them. Each
+// term looks only at the tags of the items the earlier terms left, less the
+// tags those terms matched, which are locked in (FZT-80). Items stay in tree
+// order; a term no tag starts with leaves no results. It returns false,
+// changing nothing, when no pool item has tags or the query starts with ':',
+// so that search runs as usual: an untagged menu stays searchable with tag
+// mode on, and the `:` palette, where tag mode is turned off, stays reachable
+// by typing.
 func filterByTags(ctx *TreeContext, pool []Item, query string) bool {
 	if strings.HasPrefix(query, ":") || !anyTagged(pool) {
 		return false
@@ -114,17 +122,19 @@ func filterByTags(ctx *TreeContext, pool []Item, query string) bool {
 	terms := strings.Fields(query)
 	resolved := make([]TagTerm, len(terms))
 	matching := pool
-	score := 0
+	taken := map[string]bool{}
 	unresolved := false
 	for i, term := range terms {
-		tag := resolveTag(term, tagVocabulary(matching))
-		resolved[i] = TagTerm{Term: term, Tag: tag}
-		if tag == "" {
+		tags := tagsStartingWith(term, tagVocabulary(matching), taken)
+		resolved[i] = TagTerm{Term: term, Tag: shortestTag(tags), Tags: tags}
+		if len(tags) == 0 {
 			unresolved = true
 			continue // later terms still resolve, so each one's state is shown
 		}
-		score += FuzzyMatch(tag, term).Score
-		matching = withTag(matching, tag)
+		matching = withAnyTag(matching, tags)
+		for _, tag := range tags {
+			taken[tag] = true
+		}
 	}
 	ctx.TagTerms = resolved
 	ctx.Filtered = nil
@@ -134,18 +144,20 @@ func filterByTags(ctx *TreeContext, pool []Item, query string) bool {
 
 	for _, item := range matching {
 		m := item
-		m.Score = TieredScore{Name: score}
 		m.MatchIndices = make([][]int, len(item.Fields))
 		ctx.Filtered = append(ctx.Filtered, m)
 	}
 	return true
 }
 
-func withTag(items []Item, tag string) []Item {
+func withAnyTag(items []Item, tags []string) []Item {
 	var out []Item
 	for _, item := range items {
-		if hasSearchTag(item, tag) {
-			out = append(out, item)
+		for _, tag := range tags {
+			if hasSearchTag(item, tag) {
+				out = append(out, item)
+				break
+			}
 		}
 	}
 	return out

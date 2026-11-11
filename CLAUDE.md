@@ -127,6 +127,10 @@ All in `core/input.go`:
 
 - In tag search an item's name counts as one of its tags. Typing a row's exact name (`move-window`, an alias, a key binding's note) found nothing when no tag matched it. Nelson: "it feels a little silly that a direct match for a result doesn't find it". OpenProject FZT-67.
 
+### 2026-11-11 (a tag term only narrows)
+
+- A tag-search word matches every row with a tag (or name) that starts with it, not the one closest tag, so a row leaves the results only once what is typed rules it out, and each added letter keeps a subset. A finished word's tags are locked in and don't match later words. `TagTerm.Tags` lists what a word matched; `Tag` is the shortest, which Tab completes to. Before this, `re` picked `repo` and `rel` a key binding named "Resize the pane left" by its scattered letters. Nelson: "lock in tags once they're typed ... 'br' will match every row that has a tag that fits the first two letters br". OpenProject FZT-80.
+
 ### 2026-11-11 (tag-default folders)
 
 - `Item.TagDefault` marks a folder searched by tag once you are inside it, with tag mode off; `TagSearchOn(s)` is the one test for whether a query searches by tag, and the renderer's tag icon reads it too. fzt-automate sets it on the tmux folder, so Ctrl+B opens in tag search while the rest of the at menu searches by name. Nelson, on the `:tags` toggle: "not going to be the best experience depending on the situation". OpenProject TMUX-196, FZT-68.

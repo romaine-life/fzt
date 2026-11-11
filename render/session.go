@@ -221,7 +221,7 @@ type PromptState struct {
 	Cursor    int      `json:"cursor"`
 	Ghost     string   `json:"ghost"` // autocomplete ghost text
 	Hint      string   `json:"hint"`  // placeholder when empty
-	// TagTerms is each query term and the tag it resolved to (empty tag: not
+	// TagTerms is each query term and the tags it matched (empty: not
 	// found), set while a tag search is running.
 	TagTerms []core.TagTerm `json:"tagTerms"`
 }
@@ -272,8 +272,10 @@ func (sess *Session) GetVisibleRows() []VisibleRow {
 		vr.Tags = row.Item.Tags
 		if core.TagSearchActive(ctx) {
 			for _, t := range ctx.TagTerms {
-				if t.Tag != "" && row.Item.HasTag(t.Tag) {
-					vr.MatchedTags = append(vr.MatchedTags, t.Tag)
+				for _, tag := range t.Tags {
+					if row.Item.HasTag(tag) {
+						vr.MatchedTags = append(vr.MatchedTags, tag)
+					}
 				}
 			}
 		}
