@@ -262,3 +262,37 @@ func TestTagSearchSpaceStartsNextTagEvenOnAFolder(t *testing.T) {
 		t.Fatalf("query = %q", q)
 	}
 }
+
+func TestTagDefaultFolderSearchesByTagInside(t *testing.T) {
+	s, cols, cfg := tagState(t, false)
+	ctx := s.TopCtx()
+	windows := -1
+	for i, item := range ctx.AllItems {
+		if item.Fields[0] == "windows" {
+			windows = i
+		}
+	}
+	ctx.AllItems[windows].TagDefault = true
+
+	// Outside the folder the query is a name search, as with tag mode off.
+	typeQuery(t, s, cfg, cols, "kill")
+	if TagSearchOn(s) || TagSearchActive(s.TopCtx()) {
+		t.Fatalf("root searched by tag: TagTerms %v", s.TopCtx().TagTerms)
+	}
+	for range "kill" {
+		HandleSearchKeyResult(s, tcell.KeyBackspace2, 0, cfg, cols)
+	}
+
+	PushScope(s, windows, cfg, cols)
+	if !TagSearchOn(s) {
+		t.Fatal("inside a TagDefault folder, TagSearchOn is false")
+	}
+	typeQuery(t, s, cfg, cols, "kill")
+	assertVisible(t, s, "kill-window")
+	if got := s.TopCtx().TagTerms; len(got) != 1 || got[0].Tag != "kill" {
+		t.Fatalf("TagTerms = %v, want kill resolved to kill", got)
+	}
+	if s.TagMode {
+		t.Fatal("entering the folder turned tag mode on")
+	}
+}

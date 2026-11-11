@@ -127,6 +127,10 @@ All in `core/input.go`:
 
 - In tag search an item's name counts as one of its tags. Typing a row's exact name (`move-window`, an alias, a key binding's note) found nothing when no tag matched it. Nelson: "it feels a little silly that a direct match for a result doesn't find it". OpenProject FZT-67.
 
+### 2026-11-11 (tag-default folders)
+
+- `Item.TagDefault` marks a folder searched by tag once you are inside it, with tag mode off; `TagSearchOn(s)` is the one test for whether a query searches by tag, and the renderer's tag icon reads it too. fzt-automate sets it on the tmux folder, so Ctrl+B opens in tag search while the rest of the at menu searches by name. Nelson, on the `:tags` toggle: "not going to be the best experience depending on the situation". OpenProject TMUX-196, FZT-68.
+
 ### 2026-11-01 (tag terms narrow)
 
 - A tag-search term resolves among the tags of the items the earlier terms left, not the whole pool. Typing `session f` in the tmux palette emptied the list until `fin`: `f` and `fi` each picked the closest tag anywhere, which no session row carried. OpenProject FZT-67.

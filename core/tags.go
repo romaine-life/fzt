@@ -19,6 +19,21 @@ func TagSearchActive(ctx *TreeContext) bool {
 	return len(ctx.TagTerms) > 0 && len(ctx.Query) > 0
 }
 
+// TagSearchOn reports whether a query typed now searches by tag: tag mode is
+// on, or the current scope is inside a TagDefault folder.
+func TagSearchOn(s *State) bool {
+	if s.TagMode {
+		return true
+	}
+	ctx := s.TopCtx()
+	for _, level := range ctx.Scope {
+		if level.ParentIdx >= 0 && level.ParentIdx < len(ctx.AllItems) && ctx.AllItems[level.ParentIdx].TagDefault {
+			return true
+		}
+	}
+	return false
+}
+
 // searchTags is what a tag search matches an item by: its tags and its own
 // name, so typing a row's name finds that row.
 func searchTags(item Item) []string {

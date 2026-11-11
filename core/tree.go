@@ -92,7 +92,7 @@ type State struct {
 	FrontendVersion  string        // frontend version string. Registered at index 0 of VersionRegistry.
 	HidePalette      bool          // suppress the visible `:` root row (commands stay reachable by typing `:`). Set from Config.HidePalette.
 	ScopedView       bool          // show only the current scope's children. Set from Config.ScopedView by NewState.
-	TagMode          bool          // search by tag (see Config.TagMode). Set from Config.TagMode by NewState; the `:` palette flips it.
+	TagMode          bool          // search by tag everywhere (see Config.TagMode; TagSearchOn adds TagDefault folders). Set from Config.TagMode by NewState; the `:` palette flips it.
 	IdentityLabel    string        // loaded identity (e.g. "nelson"). Emitted as a one-shot status by the :whoami palette leaf.
 	SyncIcon         string        // non-empty = show icon in top-right corner of border (e.g. "⟳" when sync available)
 	SyncNextCheck    int64         // unix timestamp — when the next background sync check fires (0 = disabled)
@@ -980,7 +980,7 @@ func FilterItems(s *State, cfg Config, searchCols []int) {
 			searchPool = DescendantsOf(ctx.AllItems, parentIdx)
 		}
 	}
-	if s.TagMode && filterByTags(ctx, searchable(ctx, searchPool), query) {
+	if TagSearchOn(s) && filterByTags(ctx, searchable(ctx, searchPool), query) {
 		return
 	}
 
