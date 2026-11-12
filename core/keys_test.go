@@ -393,3 +393,36 @@ func TestFlatPopupRunsTheHighlightedLine(t *testing.T) {
 		t.Fatalf("the flat pop-up's run row returned %+v", res)
 	}
 }
+
+func TestPopupBoxSitsBelowTheRowItActsOn(t *testing.T) {
+	f := keyFixture{yaml: keysTestMenu, cfg: treeCfg(), steps: runes("wsopen")}
+	s, cols := newKeysState(t, f)
+	under := s.TopCtx()
+	anchor := firstItemRow(under, f.cfg) + under.TreeCursor - under.TreeOffset
+	pressKey(s, f, keyPress{key: tcell.KeyRune, ch: '/'}, cols)
+	_, y, _, bh := KeyPopupBox(s, f.cfg, 100, 40)
+	if y != anchor+1 || bh != len(s.TopCtx().AllItems)+5 {
+		t.Fatalf("box at y=%d h=%d, want just below row %d", y, bh, anchor)
+	}
+	s.Contexts[0].TreeCursor = 20 // a row near the bottom of a 30-row frame
+	anchor = firstItemRow(&s.Contexts[0], f.cfg) + 20
+	if _, y, _, _ := KeyPopupBox(s, f.cfg, 100, 30); y+bh > anchor {
+		t.Fatalf("with no room below, the box (y=%d, h=%d) covers row %d", y, bh, anchor)
+	}
+}
+
+func TestPopupClicksMapThroughTheBox(t *testing.T) {
+	f := keyFixture{yaml: keysTestMenu, cfg: treeCfg(), steps: runes("wsopen")}
+	s, cols := newKeysState(t, f)
+	pressKey(s, f, keyPress{key: tcell.KeyRune, ch: '/'}, cols)
+	_, y, _, _ := KeyPopupBox(s, f.cfg, 100, 40)
+	res := ClickUnifiedRowResult(s, y+4, f.cfg, 40)
+	if !res.HasItem || itemName(res.Item) != "wsopen" {
+		t.Fatalf("clicking the pop-up's first row returned %+v", res)
+	}
+	pressKey(s, f, keyPress{key: tcell.KeyRune, ch: '/'}, cols)
+	ClickUnifiedRowResult(s, 0, f.cfg, 40)
+	if KeyPopupOpen(s) {
+		t.Fatal("a click outside the box left the pop-up open")
+	}
+}

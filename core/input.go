@@ -1051,6 +1051,9 @@ func ClickUnifiedRow(s *State, row int, cfg Config, h int) string {
 // ClickUnifiedRowResult is like ClickUnifiedRow, but also returns the item
 // that produced a select action when one is known.
 func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
+	if KeyPopupOpen(s) && !cfg.HidePromptBar {
+		return clickKeyPopup(s, row, cfg, h)
+	}
 	res := clickUnifiedRow(s, row, cfg, h)
 	if KeyPopupOpen(s) {
 		searchCols := cfg.SearchCols
@@ -1062,30 +1065,34 @@ func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
 	return res
 }
 
+// firstItemRow is the frame row of the first tree row: after the border,
+// the prompt bar, the panel and the header.
+func firstItemRow(ctx *TreeContext, cfg Config) int {
+	borderOffset := 0
+	if cfg.Border {
+		borderOffset = 1
+	}
+	first := borderOffset + 3 // prompt bar (top border + content + bottom border)
+	if cfg.HidePromptBar {
+		first = borderOffset
+	}
+	if cfg.ShowPanel {
+		first += PanelRows
+	}
+	if len(ctx.Headers) > 0 {
+		first += 2 // header + divider
+	}
+	return first
+}
+
 func clickUnifiedRow(s *State, row int, cfg Config, h int) ActionResult {
 	if s.PromptMode != "" || s.Frozen {
 		return noActionResult()
 	}
 	s.inputArrived()
 	ctx := s.TopCtx()
-	borderOffset := 0
-	if cfg.Border {
-		borderOffset = 1
-	}
-
-	firstItemRow := borderOffset + 3 // prompt bar (top border + content + bottom border)
-	if cfg.HidePromptBar {
-		firstItemRow = borderOffset
-	}
-	if cfg.ShowPanel {
-		firstItemRow += PanelRows
-	}
-	if len(ctx.Headers) > 0 {
-		firstItemRow += 2 // header + divider
-	}
-
 	visible := TreeVisibleItems(s)
-	itemRow := row - firstItemRow
+	itemRow := row - firstItemRow(ctx, cfg)
 
 	if itemRow < 0 {
 		return noActionResult()

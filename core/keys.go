@@ -776,6 +776,61 @@ func ClickKeyPopupRow(s *State, vi int, cfg Config) ActionResult {
 	return finishKeyPopup(s, cfg, searchCols, selectActionResult(visible[vi].Item, cfg))
 }
 
+// KeyPopupBox is where the pop-up is drawn in a frame w wide and h tall,
+// from the frame's top-left: its own bordered fzt, below the row it acts on,
+// or above it when there's no room below, so that row stays in sight. Over
+// a flat list it is centered. Renderers draw it there and clicks map
+// through it, so the two can't disagree.
+func KeyPopupBox(s *State, cfg Config, w, h int) (x, y, bw, bh int) {
+	if !KeyPopupOpen(s) || len(s.Contexts) < 2 {
+		return 0, 0, 0, 0
+	}
+	popup := s.TopCtx()
+	bw = min(w-6, 100)
+	if bw < 30 {
+		bw = w
+	}
+	x = (w - bw) / 2
+	bh = min(len(popup.AllItems)+5, h)
+	if popup.keyFlat {
+		return x, (h - bh) / 2, bw, bh
+	}
+	under := &s.Contexts[len(s.Contexts)-2]
+	first := firstItemRow(under, cfg)
+	bottom := h
+	if cfg.Border {
+		bottom = h - 1
+	}
+	anchor := first - 1 // the prompt bar's bottom edge
+	if under.TreeCursor >= 0 {
+		anchor = first + under.TreeCursor - under.TreeOffset
+	}
+	switch {
+	case anchor+1+bh <= bottom:
+		y = anchor + 1
+	case anchor-bh >= first:
+		y = anchor - bh
+	default:
+		y = max(bottom-bh, 0)
+	}
+	return x, y, bw, bh
+}
+
+// clickKeyPopup is a click while the pop-up is drawn in its box: a click on
+// one of its rows picks that row, a click outside closes it.
+func clickKeyPopup(s *State, row int, cfg Config, h int) ActionResult {
+	_, y, _, bh := KeyPopupBox(s, cfg, 0, h)
+	if row < y || row >= y+bh {
+		s.PopContext()
+		return noActionResult()
+	}
+	vi := row - (y + 4) + s.TopCtx().TreeOffset // its border and prompt bar
+	if row < y+4 {
+		return noActionResult()
+	}
+	return ClickKeyPopupRow(s, vi, cfg)
+}
+
 // RunKeyAction does a KeyAction in the fzt on top: it presses the row's first
 // key, or runs what a row with no key of its own does.
 func RunKeyAction(s *State, a KeyAction, flat bool, cfg Config, searchCols []int) ActionResult {
