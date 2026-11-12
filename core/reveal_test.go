@@ -28,9 +28,9 @@ func revealState(t *testing.T) (*State, []int, Config) {
 	return s, searchCols, cfg
 }
 
-// A folder opened in place (the tree view, not the scoped one) is under the
-// cursor and asks the renderer to place it, so the rows it opened are on
-// screen (FZT-55).
+// A folder opened in place (the tree view, not the scoped one) puts the
+// cursor on its first entry and asks the renderer to place it, so the rows it
+// opened are on screen (FZT-55, FZT2-5).
 func TestOpeningAFolderRevealsIt(t *testing.T) {
 	for _, key := range []tcell.Key{tcell.KeyEnter, tcell.KeyRight} {
 		t.Run(fmt.Sprint(key), func(t *testing.T) {
@@ -42,11 +42,11 @@ func TestOpeningAFolderRevealsIt(t *testing.T) {
 			HandleUnifiedKey(s, key, 0, false, cfg, searchCols)
 
 			visible := TreeVisibleItems(s)
-			if ctx.TreeCursor != 30 || !ctx.TreeReveal {
-				t.Fatalf("cursor %d, reveal %v; want the folder's row, 30, revealed", ctx.TreeCursor, ctx.TreeReveal)
+			if ctx.TreeCursor != 31 || !ctx.TreeReveal {
+				t.Fatalf("cursor %d, reveal %v; want the first entry's row, 31, revealed", ctx.TreeCursor, ctx.TreeReveal)
 			}
-			if got := visible[ctx.TreeCursor+1].Item.Fields[0]; got != "session-a" {
-				t.Fatalf("row after the folder is %q, want session-a", got)
+			if got := visible[ctx.TreeCursor].Item.Fields[0]; got != "session-a" {
+				t.Fatalf("cursor is on %q, want session-a", got)
 			}
 		})
 	}

@@ -611,7 +611,8 @@ func SyncTreeCursorToTopMatch(s *State) {
 	ctx.TreeCursor = -1
 }
 
-// PushScope enters a folder, expanding it in the tree.
+// PushScope enters a folder, expanding it in the tree with the cursor on its
+// first entry.
 // If the folder has no children and a Provider is set, children are loaded dynamically.
 func PushScope(s *State, itemIdx int, cfg Config, searchCols []int) {
 	ctx := s.TopCtx()
@@ -654,6 +655,12 @@ func PushScope(s *State, itemIdx int, cfg Config, searchCols []int) {
 	FilterItems(s, cfg, searchCols)
 	if !s.ScopedView {
 		revealFolder(s, itemIdx)
+		// Entering a folder lands on its first entry, so a one-entry folder is
+		// open-then-Enter; an empty one leaves the cursor on the folder.
+		visible := TreeVisibleItems(s)
+		if next := ctx.TreeCursor + 1; ctx.TreeCursor >= 0 && next < len(visible) && visible[next].Item.ParentIdx == itemIdx {
+			ctx.TreeCursor = next
+		}
 	}
 }
 
