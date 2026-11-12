@@ -176,7 +176,30 @@ func HandleUnifiedKeyResult(s *State, key tcell.Key, ch rune, shift bool, cfg Co
 		return noActionResult()
 	}
 	s.inputArrived()
+	if KeyPopupOpen(s) {
+		return handleKeyPopup(s, key, ch, shift, cfg, searchCols)
+	}
+	if opensKeyPopup(s, key, ch) {
+		OpenKeyPopup(s, cfg, false)
+		return noActionResult()
+	}
+	return unifiedKey(s, key, ch, shift, cfg, searchCols)
+}
+
+// opensKeyPopup reports whether a key opens the `/` pop-up: `/` from any
+// mode of the menu. A text box an app took over (prompt mode, a rename)
+// keeps `/` as text, since what's typed there is an answer, not a search.
+func opensKeyPopup(s *State, key tcell.Key, ch rune) bool {
+	return key == tcell.KeyRune && ch == '/' && s.PromptMode == "" && s.EditMode != "rename"
+}
+
+// unifiedKey is HandleUnifiedKeyResult's tree and search handling, for the
+// fzt on top: the menu, or the pop-up itself.
+func unifiedKey(s *State, key tcell.Key, ch rune, shift bool, cfg Config, searchCols []int) ActionResult {
 	ctx := s.TopCtx()
+	if key != tcell.KeyTab && key != tcell.KeyBacktab {
+		ctx.tabRanking = nil
+	}
 
 	if s.PromptMode != "" {
 		return HandlePromptModeKeyResult(s, key, ch)
@@ -202,8 +225,7 @@ func HandleUnifiedKeyResult(s *State, key tcell.Key, ch rune, shift bool, cfg Co
 
 	// Nav mode + Backspace: chop last char of the displayed item name (which
 	// syncQueryToCursor has kept in sync with Query) and return to search mode.
-	// Paired with `/` which also returns to search but preserves the query
-	// untouched. Both are the designated exits from normal mode.
+	// The `/` pop-up's "search" row returns with the query untouched.
 	if ctx.NavMode && (key == tcell.KeyBackspace || key == tcell.KeyBackspace2) {
 		visible := TreeVisibleItems(s)
 		if ctx.TreeCursor >= 0 && ctx.TreeCursor < len(visible) && len(visible[ctx.TreeCursor].Item.Fields) > 0 {
@@ -235,13 +257,6 @@ func HandleUnifiedKeyResult(s *State, key tcell.Key, ch rune, shift bool, cfg Co
 	// When no search active, delegate to tree navigation (except printable chars)
 	if !ctx.SearchActive {
 		if key == tcell.KeyRune {
-			if ch == '/' {
-				// Activate search without inserting the /
-				ctx.SearchActive = true
-				ctx.NavMode = false
-				s.SetTitle("\uF002", 5)
-				return noActionResult()
-			}
 			if ch == '`' {
 				// Explicit entry into normal mode (cursor-on-tree). Mirrors the
 				// console-summon gesture from Quake/Source games and VS Code's
@@ -266,8 +281,8 @@ func HandleUnifiedKeyResult(s *State, key tcell.Key, ch rune, shift bool, cfg Co
 				}
 			}
 			// Normal mode (arrow-nav engaged): letter keys are nav bindings or no-op.
-			// `/` and Backspace are the designated search-mode re-entries (handled
-			// elsewhere). No auto-switchback on an unbound keypress.
+			// Backspace and the `/` pop-up's "search" row go back to typing. No
+			// auto-switchback on an unbound keypress.
 			if ctx.NavMode {
 				if navKey, arrow, ok := normalModeNavBinding(ch); ok {
 					s.SetTitle(arrow, 4)
@@ -378,6 +393,13 @@ func HandleKeyEventResult(s *State, key tcell.Key, ch rune, shift bool, cfg Conf
 		return noActionResult()
 	}
 	s.inputArrived()
+	if KeyPopupOpen(s) {
+		return handleKeyPopup(s, key, ch, shift, cfg, searchCols)
+	}
+	if opensKeyPopup(s, key, ch) {
+		OpenKeyPopup(s, cfg, true)
+		return noActionResult()
+	}
 	ctx := s.TopCtx()
 	// Shift+Enter — universal confirm-select, parallel to the tree-mode handler.
 	if shift && key == tcell.KeyEnter {
@@ -811,26 +833,12 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 			}
 			return noActionResult()
 		}
-		// Autocomplete: set query to the top match's name.
-		// If the match is a folder, push scope (same as typing name + Space).
-		if len(ctx.Filtered) > 0 && len(ctx.Filtered[0].Fields) > 0 {
-			topMatch := ctx.Filtered[0]
-			name := topMatch.Fields[0]
-			if !strings.EqualFold(string(ctx.Query), name) {
-				// First Tab: autocomplete the name
-				ctx.Query = []rune(name)
-				ctx.Cursor = len(ctx.Query)
-				FilterItems(s, cfg, searchCols)
-				UpdateQueryExpansion(s)
-				SyncTreeCursorToTopMatch(s)
-			}
-			// If folder, push scope (same behavior as Space)
-			if topMatch.HasChildren {
-				idx := FindInAll(ctx.AllItems, topMatch)
-				if idx >= 0 {
-					PushScope(s, idx, cfg, searchCols)
-				}
-			}
+		tabStep(s, cfg, searchCols, 1)
+		return noActionResult()
+
+	case tcell.KeyBacktab:
+		if !TagSearchActive(ctx) {
+			tabStep(s, cfg, searchCols, -1)
 		}
 		return noActionResult()
 
@@ -972,16 +980,10 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 
 	case tcell.KeyRune:
 		// Normal mode (arrow-nav engaged): letter keys are nav bindings or no-op.
-		// `/` returns to search with query preserved; Backspace returns to search
-		// with the last char chopped (the existing KeyBackspace case handles that
-		// since syncQueryToCursor keeps Query synced to the cursor's item name).
+		// Backspace returns to search with the last char chopped (the
+		// KeyBackspace case, since syncQueryToCursor keeps Query synced to the
+		// cursor's item name); the `/` pop-up's "search" row keeps the query.
 		if ctx.NavMode {
-			if ch == '/' {
-				// Return to search mode, query preserved
-				ctx.NavMode = false
-				s.SetTitle("\uF002", 5)
-				return noActionResult()
-			}
 			if navKey, arrow, ok := normalModeNavBinding(ch); ok {
 				s.SetTitle(arrow, 4)
 				return HandleSearchKeyResult(s, navKey, 0, cfg, searchCols)
@@ -1049,6 +1051,18 @@ func ClickUnifiedRow(s *State, row int, cfg Config, h int) string {
 // ClickUnifiedRowResult is like ClickUnifiedRow, but also returns the item
 // that produced a select action when one is known.
 func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
+	res := clickUnifiedRow(s, row, cfg, h)
+	if KeyPopupOpen(s) {
+		searchCols := cfg.SearchCols
+		if len(searchCols) == 0 {
+			searchCols = cfg.Nth
+		}
+		return finishKeyPopup(s, cfg, searchCols, res)
+	}
+	return res
+}
+
+func clickUnifiedRow(s *State, row int, cfg Config, h int) ActionResult {
 	if s.PromptMode != "" || s.Frozen {
 		return noActionResult()
 	}

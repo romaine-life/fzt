@@ -90,13 +90,19 @@ Tree state lives in `core/`. `State` holds a stack of `TreeContext` values, each
 
 All in `core/input.go`:
 
-- `HandleUnifiedKey(s, key, ch, shift, cfg, searchCols)` -- Entry point for unified tree+search mode. Takes a `shift bool` so event sources can report modifier state (picker CGo via `GetKeyState`, WASM via browser events, tui.Run via `ev.Modifiers()`). Handles rename-mode dispatch, Shift+Enter universal confirm-select, normal-mode lowercase `hjkl` + `/` + `` ` `` + Backspace routing, and delegates other keys to `HandleTreeKey` / `HandleSearchKey`. Ctrl bindings are gone — no Ctrl+C/P/N/A/E/U/W anywhere.
+- `HandleUnifiedKey(s, key, ch, shift, cfg, searchCols)` -- Entry point for unified tree+search mode. Takes a `shift bool` so event sources can report modifier state (picker CGo via `GetKeyState`, WASM via browser events, tui.Run via `ev.Modifiers()`). Handles the `/` pop-up (below), rename-mode dispatch, Shift+Enter universal confirm-select, normal-mode lowercase `hjkl` + `` ` `` + Backspace routing, and delegates other keys to `HandleTreeKey` / `HandleSearchKey`. Ctrl bindings are gone — no Ctrl+C/P/N/A/E/U/W anywhere.
 - `HandleKeyEvent(s, key, ch, shift, cfg, searchCols)` -- Flat (non-tree) mode. Same shift plumb. Shift+Enter commits the highlighted filtered item; Home/End move the query cursor; Escape cascades (clear query → pop scope → pop context → quit).
 - `HandleTreeKey` -- Pure tree navigation when no query is active. Up/Down move cursor, Enter pushes scope on folders (selects the folder if `FoldersOnly` and already scoped, otherwise no-op), Left collapses/moves to parent. No shift param needed — the caller (`HandleUnifiedKey`) has already consumed Shift+Enter before delegating.
-- `HandleSearchKey` -- Search-active mode. Typing edits query (capitals + shifted symbols literal — Shift is Shift); lowercase `hjkl` recursively routes to nav when NavMode is set; `/` exits normal mode back to search; `` ` `` enters normal mode from search. Tab autocompletes. Space on folder pushes scope. Shift+Enter commits cursor's item.
+- `HandleSearchKey` -- Search-active mode. Typing edits query (capitals + shifted symbols literal — Shift is Shift); lowercase `hjkl` recursively routes to nav when NavMode is set; `` ` `` enters normal mode from search. Tab completes the query to the top match's name, and once a match is locked in, Tab and Shift+Tab step through the ranking from the query as typed (`tabStep`; any other key drops it). Tab never opens a folder, except in a folder picker (`ScopedView` + `FoldersOnly`), where it goes in. Space on folder pushes scope. Shift+Enter commits cursor's item.
 - `HandlePromptModeKeyResult` -- The text box a frontend takes over with `EnterPromptMode`. `SetPromptText(text, selected)` opens it on text to edit with its first runes selected: the first character, Backspace or Delete replaces or removes them, and Left, Right, Home or End only drops the selection. Used to rename a file with its name selected and its extension left alone.
 - `syncQueryToCursor` -- Called during Up/Down navigation in search mode. Updates the search query to match the highlighted item's name and clears stale Filtered results so the search bar follows the cursor.
 - `normalModeNavBinding(ch)` -- Maps `'h'` / `'j'` / `'k'` / `'l'` to their tcell arrow keys + title-glyph strings. Used by both `HandleUnifiedKey`'s SA=false branch and `HandleSearchKey`'s NavMode branch so the hjkl vocabulary is centralized.
+
+### The `/` pop-up (`core/keys.go`)
+
+`/` opens a small fzt of its own over whatever you are in, in the tree and the flat list alike: `OpenKeyPopup` pushes a `ContextKeys` context whose rows are `KeyActions`, the things the keys do at that moment. Each row is a verb (`Item.Fields[0]`, what its search matches), a description of what it does now (`Fields[1]`) and the keys that do it (`Item.Keys`, drawn as keycaps). `/` is never typed into a query; a text box an app took over (prompt mode, a rename) keeps it as text. In the pop-up, keys work as in any fzt; `/` again, Esc or Backspace on an empty search closes it; picking a row (Enter, Shift+Enter, `ClickKeyPopupRow`, or a click through `ClickUnifiedRowResult` from a host that draws the rows) closes it and does the row's action in the fzt underneath, which kept its query and cursor. A row with no key of its own (normal mode's "search", back to typing with the query kept) runs a function instead.
+
+`KeyActions` asks each of `keyPresses` what it would do now (`unifiedEffect`, `flatEffect`) and groups the keys by what they do. Those mirror the handlers in `input.go` branch for branch, so a change to a key's behavior changes its effect function too: `TestKeyActionsListExactlyWhatActs` presses every key in a set of fixture states and fails when a key is listed and changes nothing, or changes something and isn't listed. Shift+Backspace is fzt-terminal's key; `GoHome` is what it does, and the pop-up's "go to top" row calls it. `render.Session` reports the rows' keys (`VisibleRow.Keys`) and the open pop-up (`PromptState.KeyPopup`, `KeyPopupFor`) to frontends that draw rows themselves.
 
 ## ANSI Parsing
 
@@ -118,6 +124,10 @@ All in `core/input.go`:
 - `gopkg.in/yaml.v3` -- YAML tree loading.
 
 ## Change Log
+
+### 2026-11-11 (the `/` pop-up)
+
+- `/` opens a pop-up listing what each key does at that moment, with the keys as keycaps, searchable by verb, and picking a row does it. It replaces fixed key tables that went stale and the old `/` bindings (start search, leave normal mode), and `/` is no longer typed into a query. Tab completes and then steps through the ranking from the query as typed, Shift+Tab back; it no longer opens a folder outside a folder picker. Nelson: "a big part of what's missing ... a lot of shortcuts that i don't have an easy way to tell people about". OpenProject FZT2-4.
 
 ### 2026-11-01 (tags in YAML)
 

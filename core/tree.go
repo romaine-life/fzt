@@ -14,6 +14,7 @@ type ContextKind int
 const (
 	ContextNormal ContextKind = iota
 	ContextCommand
+	ContextKeys // the `/` pop-up (OpenKeyPopup)
 )
 
 // ScopeLevel saves navigation state when entering a folder.
@@ -68,6 +69,18 @@ type TreeContext struct {
 	Kind         ContextKind
 	OnLeafSelect func(item Item) string
 	PromptIcon   rune // 0 = default (search/nav), ':' for commands
+
+	// The ranking from the query as typed, which Tab and Shift+Tab step
+	// through once a match is locked in, and the match they're on (-1: none
+	// yet). Any other key drops it.
+	tabRanking []Item
+	tabAt      int
+
+	// The `/` pop-up's rows, whether they act on a flat list, and the name
+	// of what they act on (ContextKeys only).
+	keyActions []KeyAction
+	keyFlat    bool
+	keyFor     string
 }
 
 // CommandItem describes a frontend-registered command for the `:` palette.

@@ -210,6 +210,7 @@ type VisibleRow struct {
 	DescMatchIndices []int    `json:"descMatchIndices"`
 	Tags             []string `json:"tags"`
 	MatchedTags      []string `json:"matchedTags"` // the row's tags the current tag search resolved to
+	Keys             []string `json:"keys"`        // a `/` pop-up row's keys, drawn as keycaps
 }
 
 // PromptState describes the prompt bar state for DOM rendering.
@@ -224,6 +225,10 @@ type PromptState struct {
 	// TagTerms is each query term and the tags it matched (empty: not
 	// found), set while a tag search is running.
 	TagTerms []core.TagTerm `json:"tagTerms"`
+	// KeyPopup is set while the `/` pop-up is open: the rows are its
+	// actions, and KeyPopupFor names the match or folder they act on.
+	KeyPopup    bool   `json:"keyPopup"`
+	KeyPopupFor string `json:"keyPopupFor"`
 }
 
 // UIState describes chrome/metadata for DOM rendering.
@@ -270,6 +275,7 @@ func (sess *Session) GetVisibleRows() []VisibleRow {
 			vr.DescMatchIndices = row.Item.MatchIndices[1]
 		}
 		vr.Tags = row.Item.Tags
+		vr.Keys = row.Item.Keys
 		if core.TagSearchActive(ctx) {
 			for _, t := range ctx.TagTerms {
 				for _, tag := range t.Tags {
@@ -345,13 +351,15 @@ func (sess *Session) GetPromptState() PromptState {
 	}
 
 	return PromptState{
-		Mode:      mode,
-		ScopePath: scopePath,
-		Query:     query,
-		Cursor:    ctx.Cursor,
-		Ghost:     ghost,
-		Hint:      hint,
-		TagTerms:  tagTerms,
+		Mode:        mode,
+		ScopePath:   scopePath,
+		Query:       query,
+		Cursor:      ctx.Cursor,
+		Ghost:       ghost,
+		Hint:        hint,
+		TagTerms:    tagTerms,
+		KeyPopup:    core.KeyPopupOpen(sess.state),
+		KeyPopupFor: core.KeyPopupTitle(sess.state),
 	}
 }
 
