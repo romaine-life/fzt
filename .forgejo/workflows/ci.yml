@@ -14,3 +14,10 @@ jobs:
       - run: go vet ./...
       - run: go test ./...
       - run: go build ./...
+
+  # The fetch check reads only the repo, and runs where Python is (FORGEJO-28).
+  fetches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: romaine-life/pipeline-templates/actions/check-fetches@main
