@@ -601,7 +601,7 @@ func tabTarget(s *State, cfg Config, dir int) (Item, bool, bool) {
 		if dir > 0 {
 			return ranking[0], false, true
 		}
-		return ranking[len(ranking)-1], false, true
+		return Item{}, false, false // Shift+Tab steps back once a match is locked in
 	}
 	if len(ranking) < 2 {
 		return Item{}, false, false
@@ -615,6 +615,9 @@ func tabTarget(s *State, cfg Config, dir int) (Item, bool, bool) {
 func tabStep(s *State, cfg Config, searchCols []int, dir int) {
 	ctx := s.TopCtx()
 	if ctx.tabRanking == nil {
+		if dir < 0 && !(len(ctx.Filtered) > 0 && strings.EqualFold(string(ctx.Query), itemName(ctx.Filtered[0]))) {
+			return // Shift+Tab steps back once a match is locked in
+		}
 		ctx.tabRanking = append([]Item(nil), ctx.Filtered...)
 		ctx.tabAt = -1
 		if len(ctx.tabRanking) > 0 && strings.EqualFold(string(ctx.Query), itemName(ctx.tabRanking[0])) {
@@ -627,10 +630,8 @@ func tabStep(s *State, cfg Config, searchCols []int, dir int) {
 	}
 	next := ctx.tabAt + dir
 	switch {
-	case ctx.tabAt < 0 && dir > 0:
-		next = 0
 	case ctx.tabAt < 0:
-		next = n - 1
+		next = 0
 	case n < 2:
 		return
 	}

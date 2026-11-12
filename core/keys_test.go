@@ -354,6 +354,11 @@ func TestTabStepsThroughTheTypedRanking(t *testing.T) {
 	if got := tab(tcell.KeyBacktab); got != ranking[len(ranking)-1] {
 		t.Fatalf("Shift+Tab past the first = %q, want the last, %q", got, ranking[len(ranking)-1])
 	}
+	s2, _ := newKeysState(t, f)
+	pressKey(s2, f, keyPress{key: tcell.KeyBacktab}, cols)
+	if q := string(s2.TopCtx().Query); q != "wso" {
+		t.Fatalf("Shift+Tab before a match is locked in changed the query to %q", q)
+	}
 	pressKey(s, f, keyPress{key: tcell.KeyBackspace2}, cols)
 	if s.TopCtx().tabRanking != nil {
 		t.Fatal("typing kept the old Tab ranking")
