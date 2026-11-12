@@ -36,6 +36,8 @@ Tests:
 go test ./core/...
 ```
 
+A change to how keys or the tree behave can break the tests of fzt-terminal (`tui`) and fzt-automate, which press keys through the real engine; their take-up of a release then fails. Before handing such a change over, run both repos' `go test ./...` with `go mod edit -replace github.com/romaine-life/fzt=<this checkout>` (fzt-automate also replaces fzt-terminal), and ship any test or renderer change they need alongside.
+
 ## Scoring Architecture
 
 Scoring uses a `TieredScore` struct with three levels compared lexicographically (name first, then desc, then ancestor). Any name match always outranks any description match, which always outranks any ancestor match. No magic multipliers -- tier ordering is enforced by `TieredScore.Less()` comparison logic. Items whose scores are equal on all three tiers go to the shallower one, then keep list order, so a top-level folder beats an equally matching item inside another folder.
@@ -79,7 +81,7 @@ Tree state lives in `core/`. `State` holds a stack of `TreeContext` values, each
 
 ### Key concepts
 
-- **Scope**: Entering a folder pushes a `ScopeLevel` that saves query/cursor/offset. `PopScope` restores state and conditionally collapses the folder.
+- **Scope**: Entering a folder pushes a `ScopeLevel` that saves query/cursor/offset. `PopScope` restores state and conditionally collapses the folder. In the tree view (not `ScopedView`), `PushScope` leaves the cursor on the folder's first entry (on the folder when it is empty) and sets `TreeReveal` with `TreeRevealRow` on the folder's row, so the renderer places the folder two rows below the search box with its first entry under it. After a search, `TreeRevealRow` is the cursor's row.
 - **Context stack**: `State.Contexts` is a stack of `TreeContext` values. Index 0 = primary dataset. The command palette pushes a second context on top with its own items, query, and scope. `PushContext`/`PopContext` manage the stack. `TopCtx()` always returns the active context.
 - **Provider**: `TreeProvider` interface enables lazy-loading. When `PushScope` encounters a folder with no loaded children and a provider is set, it calls `LoadChildren` to splice items dynamically.
 - **Filtering**: `FilterItems` applies the current query to the search pool. In tiered mode, searches all descendants (optionally depth-limited via `SearchDepth`) with ancestor name inheritance. Results are sorted by `TieredScore.Less()`.
@@ -92,7 +94,7 @@ All in `core/input.go`:
 
 - `HandleUnifiedKey(s, key, ch, shift, cfg, searchCols)` -- Entry point for unified tree+search mode. Takes a `shift bool` so event sources can report modifier state (picker CGo via `GetKeyState`, WASM via browser events, tui.Run via `ev.Modifiers()`). Handles the `/` pop-up (below), rename-mode dispatch, Shift+Enter universal confirm-select, normal-mode lowercase `hjkl` + `` ` `` + Backspace routing, and delegates other keys to `HandleTreeKey` / `HandleSearchKey`. Ctrl bindings are gone — no Ctrl+C/P/N/A/E/U/W anywhere.
 - `HandleKeyEvent(s, key, ch, shift, cfg, searchCols)` -- Flat (non-tree) mode. Same shift plumb. Shift+Enter commits the highlighted filtered item; Home/End move the query cursor; Escape cascades (clear query → pop scope → pop context → quit).
-- `HandleTreeKey` -- Pure tree navigation when no query is active. Up/Down move cursor, Enter pushes scope on folders (selects the folder if `FoldersOnly` and already scoped, otherwise no-op), Left collapses/moves to parent. No shift param needed — the caller (`HandleUnifiedKey`) has already consumed Shift+Enter before delegating.
+- `HandleTreeKey` -- Pure tree navigation when no query is active. Up/Down move cursor, Enter pushes scope on folders, landing on the first entry (selects the folder if `FoldersOnly` and already scoped, otherwise no-op), Left collapses/moves to parent. No shift param needed — the caller (`HandleUnifiedKey`) has already consumed Shift+Enter before delegating.
 - `HandleSearchKey` -- Search-active mode. Typing edits query (capitals + shifted symbols literal — Shift is Shift); lowercase `hjkl` recursively routes to nav when NavMode is set; `` ` `` enters normal mode from search. Tab completes the query to the top match's name, and once a match is locked in, Tab and Shift+Tab step through the ranking from the query as typed (`tabStep`; any other key drops it). Tab never opens a folder, except in a folder picker (`ScopedView` + `FoldersOnly`), where it goes in. Space on folder pushes scope. Shift+Enter commits cursor's item.
 - `HandlePromptModeKeyResult` -- The text box a frontend takes over with `EnterPromptMode`. `SetPromptText(text, selected)` opens it on text to edit with its first runes selected: the first character, Backspace or Delete replaces or removes them, and Left, Right, Home or End only drops the selection. Used to rename a file with its name selected and its extension left alone.
 - `syncQueryToCursor` -- Called during Up/Down navigation in search mode. Updates the search query to match the highlighted item's name and clears stale Filtered results so the search bar follows the cursor.
