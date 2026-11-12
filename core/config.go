@@ -70,6 +70,9 @@ type Config struct {
 	// (["tmux"]), as if the user had entered it; backing out reaches the root.
 	// The renderer applies it with EnterFolder once the tree is complete.
 	StartFolder        []string
+	// StartRow, when above 0, starts the cursor on that entry of StartFolder,
+	// counted from 1 (the last entry when the folder has fewer).
+	StartRow           int
 	ConfigDir          string // directory containing sync state files (.last-sync-check, .identity, identities.json, cache)
 	InitialMenuVersion int    // persisted menu version for conflict detection on save
 	// Self-update target — consumed by fzt-terminal's RunUpdate when the

@@ -118,6 +118,7 @@ func findChild(allItems []Item, parentIdx int, name string) int {
 // EnterFolder enters the folder at path (names from the root, matched as
 // findChild does) one level at a time, as the user would. It reports whether
 // the whole path was found; when it wasn't, the menu is left at the root.
+// With cfg.StartRow, the cursor starts on that entry of the folder.
 func EnterFolder(s *State, path []string, cfg Config, searchCols []int) bool {
 	ctx := s.TopCtx()
 	var idxs []int
@@ -133,5 +134,31 @@ func EnterFolder(s *State, path []string, cfg Config, searchCols []int) bool {
 	for _, idx := range idxs {
 		PushScope(s, idx, cfg, searchCols)
 	}
+	if len(idxs) > 0 && cfg.StartRow > 0 {
+		startOnEntry(s, parentIdx, cfg.StartRow)
+	}
 	return len(idxs) > 0
+}
+
+// startOnEntry puts the cursor on the folder's nth entry, counted from 1, or
+// its last when it has fewer, as if the arrow keys had moved it there.
+func startOnEntry(s *State, folderIdx, n int) {
+	ctx := s.TopCtx()
+	row := -1
+	for vi, r := range TreeVisibleItems(s) {
+		if r.Item.ParentIdx != folderIdx {
+			continue
+		}
+		row = vi
+		if n--; n == 0 {
+			break
+		}
+	}
+	if row < 0 {
+		return
+	}
+	ctx.TreeCursor = row
+	ctx.NavMode = true
+	ctx.TreeReveal = !s.ScopedView
+	ctx.TreeRevealRow = row
 }
