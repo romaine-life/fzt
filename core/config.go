@@ -19,7 +19,7 @@ type Config struct {
 	Prompt       string // custom prompt prefix string
 	Delimiter    string // field delimiter for ParseLines (e.g. "\t")
 	Tiered       bool   // enable hierarchical scoring: depth penalty, ancestor matching, scope-based search pools
-	DepthPenalty int    // per-level penalty subtracted from Name tier score (relative to current scope). All callers use 5.
+	DepthPenalty int    // per-level penalty subtracted from Name tier score (relative to current scope).
 	SearchCols   []int  // 1-based: restricts which fields qualify for the Name tier. Overrides Nth for scoring.
 	ShowScores   bool   // annotate filter output with raw scores (debugging)
 	ANSI         bool   // preserve ANSI escape codes from input in StyledFields

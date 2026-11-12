@@ -1020,8 +1020,13 @@ func FilterItems(s *State, cfg Config, searchCols []int) {
 		}
 	}
 
+	// Equal scores go to the shallower item, then keep list order.
 	sort.SliceStable(matched, func(i, j int) bool {
-		return matched[j].Score.Less(matched[i].Score)
+		a, b := matched[i], matched[j]
+		if a.Score != b.Score {
+			return b.Score.Less(a.Score)
+		}
+		return a.Depth < b.Depth
 	})
 	ctx.Filtered = matched
 }

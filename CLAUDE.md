@@ -38,7 +38,7 @@ go test ./core/...
 
 ## Scoring Architecture
 
-Scoring uses a `TieredScore` struct with three levels compared lexicographically (name first, then desc, then ancestor). Any name match always outranks any description match, which always outranks any ancestor match. No magic multipliers -- tier ordering is enforced by `TieredScore.Less()` comparison logic.
+Scoring uses a `TieredScore` struct with three levels compared lexicographically (name first, then desc, then ancestor). Any name match always outranks any description match, which always outranks any ancestor match. No magic multipliers -- tier ordering is enforced by `TieredScore.Less()` comparison logic. Items whose scores are equal on all three tiers go to the shallower one, then keep list order, so a top-level folder beats an equally matching item inside another folder.
 
 ### Match tiers (highest to lowest)
 
@@ -59,7 +59,7 @@ Items with the same name in different folders are uniquely searchable. Ancestor 
 - `TreeMode` is a renderer flag consumed by fzt-terminal's tui package. The engine does not read it.
 - `Tiered` enables hierarchical scoring in the engine: depth penalty, ancestor matching, scope-based search pools in FilterItems. TreeMode implies Tiered in practice (all tree-mode callers set both), but they are separate fields.
 - `SearchCols` (1-based) restricts which fields qualify for the Name tier. If empty, falls back to `Nth`. Description fields (index 1+) are always searchable at the Desc tier regardless.
-- `DepthPenalty` is subtracted from Name tier score as `relativeDepth * DepthPenalty`. Relative depth is measured from current scope, not absolute. All callers use 5.
+- `DepthPenalty` is subtracted from Name tier score as `relativeDepth * DepthPenalty`. Relative depth is measured from current scope, not absolute.
 - `FrontendName`/`FrontendVersion`/`FrontendCommands` are set by the ecosystem (fzt-terminal ApplyConfig), not the engine. They drive the two-level `:` palette via InjectCommandFolder.
 - `HidePalette` suppresses the `:` palette entirely. When set, `InjectCommandFolder` early-returns — no `:` root row, no palette items in `AllItems`, so typing `:` can't reach them via search either. Set by consumers where the palette is meaningless (my-homepage's unauthenticated playground visitors, for whom edit/logout make no sense). Default false; fzt-automate / fzt-picker / authenticated homepage keep the palette visible.
 - `HidePromptBar` is a renderer flag: the tree view starts at the rows, with no search box. The query, cursor, breadcrumb and ghost still live in the state and reach the host through `GetPromptState`; keys still go to the session. Set by a host that types the query into its own text box (nudge's `/` palette in its chat input), so there is one box, not two.
