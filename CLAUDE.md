@@ -127,6 +127,10 @@ All in `core/input.go`:
 
 ## Change Log
 
+### 2026-11-14 (select first)
+
+- `Config.SelectFirst`: a flat list opens with its first row highlighted, so Enter at once picks it. fzt-automate's repo picker opens on its `D:\repos` row, and Nelson wanted Enter right away to start there; without it Enter did nothing until an arrow key. Opt-in, so the other flat pickers keep opening with nothing highlighted. OpenProject FZTA-21.
+
 ### 2026-11-11 (the `/` pop-up)
 
 - `/` opens a pop-up listing what each key does at that moment, with the keys as keycaps, searchable by verb, and picking a row does it. It replaces fixed key tables that went stale and the old `/` bindings (start search, leave normal mode), and `/` is no longer typed into a query. Tab completes and then steps through the ranking from the query as typed, Shift+Tab back; it no longer opens a folder outside a folder picker. Nelson: "a big part of what's missing ... a lot of shortcuts that i don't have an easy way to tell people about". OpenProject FZT2-4.

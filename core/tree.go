@@ -357,6 +357,9 @@ func NewState(items []Item, cfg Config) (*State, []int) {
 		searchCols = cfg.Nth
 	}
 	FilterItems(s, cfg, searchCols)
+	if cfg.SelectFirst && len(s.TopCtx().Filtered) > 0 {
+		s.TopCtx().Index = 0
+	}
 
 	return s, searchCols
 }

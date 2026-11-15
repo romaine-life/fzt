@@ -48,6 +48,11 @@ type Config struct {
 	// the latest command result (fzt-automate --popup). Renderer layout, and
 	// the click row math here, account for it.
 	ShowPanel bool
+	// SelectFirst starts a flat list (not TreeMode) with its first row
+	// highlighted, so Enter at once picks it, as typing and erasing a query
+	// already leaves it. Without it the list opens with nothing highlighted
+	// and Enter does nothing until a key moves the cursor.
+	SelectFirst bool
 	FoldersOnly      bool // folders are the selectable items — Enter on an already-scoped folder returns "select:" instead of no-op
 	// ScopedView shows only the folder you are in. Entering a folder replaces
 	// the view with its children instead of expanding it in place, Left goes
