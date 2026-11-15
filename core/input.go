@@ -249,6 +249,7 @@ func unifiedKey(s *State, key tcell.Key, ch rune, shift bool, cfg Config, search
 			ctx.Filtered = nil
 			ctx.TreeCursor = -1
 			ctx.QueryExpanded = make(map[int]bool)
+			clearedCursor(s, cfg)
 		}
 		s.SetTitle("\u232B", 5)
 		return noActionResult()
@@ -454,9 +455,9 @@ func HandleKeyEventResult(s *State, key tcell.Key, ch rune, shift bool, cfg Conf
 					ctx.Items = ChildrenOf(ctx.AllItems, parentIdx)
 					ctx.Query = nil
 					ctx.Cursor = 0
-					ctx.Index = -1
 					ctx.Offset = 0
 					FilterItems(s, cfg, searchCols)
+					ctx.Index = firstRow(ctx)
 				}
 			} else {
 				return selectActionResult(selected, cfg)
@@ -515,9 +516,9 @@ func HandleKeyEventResult(s *State, key tcell.Key, ch rune, shift bool, cfg Conf
 				ctx.Items = ChildrenOf(ctx.AllItems, parentIdx)
 				ctx.Query = nil
 				ctx.Cursor = 0
-				ctx.Index = -1
 				ctx.Offset = 0
 				FilterItems(s, cfg, searchCols)
+				ctx.Index = firstRow(ctx)
 			}
 		} else if ctx.Index == -1 && ctx.Cursor < len(ctx.Query) {
 			ctx.Cursor++
@@ -594,6 +595,15 @@ func FormatOutput(item Item, cfg Config) string {
 		return item.Original
 	}
 	return strings.Join(item.Fields, "\t")
+}
+
+// clearedCursor rests the cursor once the query is cleared at the top or in a scoped
+// view (RestCursor). Inside a folder of the tree view it is left alone: Enter there
+// acts on the folder's top match.
+func clearedCursor(s *State, cfg Config) {
+	if len(s.TopCtx().Scope) <= 1 || s.ScopedView {
+		RestCursor(s, cfg)
+	}
 }
 
 // picksFolders reports whether Enter picks folders instead of entering them:
@@ -777,10 +787,10 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 			if len(ctx.Scope) <= 1 {
 				ctx.SearchActive = false
 				ctx.Filtered = nil
-				ctx.TreeCursor = -1
 			} else {
 				FilterItems(s, cfg, searchCols)
 			}
+			clearedCursor(s, cfg)
 			return noActionResult()
 		}
 		if len(ctx.Scope) > 1 {
@@ -924,6 +934,7 @@ func HandleSearchKeyResult(s *State, key tcell.Key, ch rune, cfg Config, searchC
 				} else {
 					FilterItems(s, cfg, searchCols)
 				}
+				clearedCursor(s, cfg)
 			} else {
 				FilterItems(s, cfg, searchCols)
 				UpdateQueryExpansion(s)

@@ -64,10 +64,9 @@ func NewTreeSession(items []core.Item, cfg core.Config, w, h int, drawTree DrawT
 		s.Provider = cfg.Provider
 	}
 	ctx := s.TopCtx()
-	ctx.Index = -1
 	ctx.TreeExpanded = make(map[int]bool)
 	ctx.QueryExpanded = make(map[int]bool)
-	ctx.TreeCursor = -1
+	core.RestCursor(s, cfg)
 	ctx.TreeOffset = 0
 	if cfg.FocusedDir != "" && s.Provider != nil {
 		core.ExpandToPath(s, cfg.FocusedDir, cfg, searchCols)

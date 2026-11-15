@@ -31,7 +31,7 @@ func scopedState(t *testing.T, foldersOnly bool) (*State, []int, Config) {
 	ctx := s.TopCtx()
 	ctx.TreeExpanded = make(map[int]bool)
 	ctx.QueryExpanded = make(map[int]bool)
-	ctx.TreeCursor = -1
+	RestCursor(s, cfg)
 	return s, searchCols, cfg
 }
 
@@ -74,14 +74,12 @@ func TestScopedViewShowsOnlyCurrentFolder(t *testing.T) {
 	s, searchCols, cfg := scopedState(t, false)
 	assertVisible(t, s, "repos", "games")
 
-	press(t, s, cfg, searchCols, tcell.KeyDown)
 	press(t, s, cfg, searchCols, tcell.KeyEnter)
 	assertVisible(t, s, "fzt", "fzt-picker")
-	if s.TopCtx().TreeCursor != -1 {
-		t.Fatalf("cursor = %d after entering, want -1", s.TopCtx().TreeCursor)
+	if s.TopCtx().TreeCursor != 0 {
+		t.Fatalf("cursor = %d after entering, want 0, the folder's first entry", s.TopCtx().TreeCursor)
 	}
 
-	press(t, s, cfg, searchCols, tcell.KeyDown)
 	press(t, s, cfg, searchCols, tcell.KeyRight)
 	assertVisible(t, s, "core")
 
@@ -93,8 +91,8 @@ func TestScopedViewShowsOnlyCurrentFolder(t *testing.T) {
 
 func TestScopedViewSearchCoversDirectChildrenOnly(t *testing.T) {
 	s, searchCols, cfg := scopedState(t, false)
-	press(t, s, cfg, searchCols, tcell.KeyDown)
 	press(t, s, cfg, searchCols, tcell.KeyEnter)
+	assertVisible(t, s, "fzt", "fzt-picker")
 
 	typeText(t, s, cfg, searchCols, "core")
 	for _, item := range s.TopCtx().Filtered {
@@ -151,14 +149,23 @@ func TestScopedViewFoldersOnlyEnterPicksCurrentFolder(t *testing.T) {
 	}
 }
 
-func TestScopedViewWithoutFoldersOnlyEnterOnNothingIsNoop(t *testing.T) {
+// A file picker rests on a folder's first entry, so Enter at once goes into it: with
+// nothing typed, Enter has nothing else to do (FZTA-21).
+func TestScopedViewWithoutFoldersOnlyEnterAtOnceEntersTheFirstEntry(t *testing.T) {
 	s, searchCols, cfg := scopedState(t, false)
-	press(t, s, cfg, searchCols, tcell.KeyDown)
 	press(t, s, cfg, searchCols, tcell.KeyEnter)
-	if r := press(t, s, cfg, searchCols, tcell.KeyEnter); r.Action != "" {
-		t.Fatalf("Enter with no cursor = %q, want no action", r.Action)
-	}
 	assertVisible(t, s, "fzt", "fzt-picker")
+	if r := press(t, s, cfg, searchCols, tcell.KeyEnter); r.Action != "" {
+		t.Fatalf("Enter on a folder = %q, want it entered", r.Action)
+	}
+	assertVisible(t, s, "core")
+	press(t, s, cfg, searchCols, tcell.KeyLeft)
+	typeText(t, s, cfg, searchCols, "zz")
+	press(t, s, cfg, searchCols, tcell.KeyBackspace2)
+	press(t, s, cfg, searchCols, tcell.KeyBackspace2)
+	if got := s.TopCtx().TreeCursor; got != 0 {
+		t.Fatalf("cursor = %d after the query was erased, want 0", got)
+	}
 }
 
 func TestScopedViewClickEntersFolder(t *testing.T) {

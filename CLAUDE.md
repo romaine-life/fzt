@@ -86,6 +86,7 @@ Tree state lives in `core/`. `State` holds a stack of `TreeContext` values, each
 - **Provider**: `TreeProvider` interface enables lazy-loading. When `PushScope` encounters a folder with no loaded children and a provider is set, it calls `LoadChildren` to splice items dynamically.
 - **Filtering**: `FilterItems` applies the current query to the search pool. In tiered mode, searches all descendants (optionally depth-limited via `SearchDepth`) with ancestor name inheritance. Results are sorted by `TieredScore.Less()`.
 - **Auto-expansion**: `UpdateQueryExpansion` sets `QueryExpanded` flags to reveal the top match. `SyncTreeCursorToTopMatch` positions the cursor on it.
+- **Rest**: with nothing typed, the cursor rests on the first row (`RestCursor`; a flat list's `Index` 0), so Enter at once acts on it. A scoped folder picker rests on nothing: Enter there picks the folder you are in.
 - **Hidden folders**: Items with `Hidden: true` are excluded from the visible tree but participate in search. `TreeVisibleItems` starts from a hidden folder's children (exclusive "takeover" view) when the user is scoped inside it. The `:` palette folder used to be Hidden (2026-04-19: flipped to visible so it shows as a regular row at root — discoverability over stealth). No current consumer sets `Hidden: true` on any item — suppression of the `:` palette for browser contexts uses `Config.HidePalette` (skip-injection) instead, which takes the whole subtree out of `AllItems` rather than marking it hidden. The Hidden field stays available for future uses (nested takeover views, lazy-loaded subtrees, etc.).
 
 ### Input handlers
@@ -127,9 +128,9 @@ All in `core/input.go`:
 
 ## Change Log
 
-### 2026-11-14 (select first)
+### 2026-11-14 (Enter at rest)
 
-- `Config.SelectFirst`: a flat list opens with its first row highlighted, so Enter at once picks it. fzt-automate's repo picker opens on its `D:\repos` row, and Nelson wanted Enter right away to start there; without it Enter did nothing until an arrow key. Opt-in, so the other flat pickers keep opening with nothing highlighted. OpenProject FZTA-21.
+- Every list rests on its first row with nothing typed, so Enter at once acts on it: a flat list (`Index` 0), and the tree view at the top and in a scoped view (`RestCursor`, called by every frontend in place of `TreeCursor = -1`). Nelson: with nothing typed Enter has no other use, so it was wasted; the repo picker should start in `D:\repos` on Enter. A scoped folder picker still rests on nothing, since Enter there picks the folder you are in (FZT-51), and inside a tree-view folder Enter already acted on its top match. Replaces the opt-in `Config.SelectFirst` of the same day. OpenProject FZTA-21.
 
 ### 2026-11-11 (the `/` pop-up)
 

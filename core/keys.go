@@ -207,7 +207,7 @@ func leaveEffect(ctx *TreeContext) (string, string, bool) {
 func atHome(s *State) bool {
 	ctx := s.TopCtx()
 	return len(s.Contexts) == 1 && len(ctx.Scope) <= 1 && len(ctx.Query) == 0 &&
-		ctx.TreeCursor < 0 && !ctx.SearchActive && !ctx.NavMode && len(ctx.TreeExpanded) == 0
+		ctx.TreeCursor <= 0 && !ctx.SearchActive && !ctx.NavMode && len(ctx.TreeExpanded) == 0
 }
 
 // walkChanges reports whether moving the tree cursor by delta (wrapping, the
@@ -873,6 +873,7 @@ func GoHome(s *State, cfg Config, searchCols []int) {
 	ctx.tabRanking = nil
 	ctx.QueryExpanded = make(map[int]bool)
 	ctx.TreeExpanded = make(map[int]bool)
+	RestCursor(s, cfg)
 	if s.EditMode == "" {
 		s.SetTitle("⌂", 1)
 	}

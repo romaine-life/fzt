@@ -357,11 +357,30 @@ func NewState(items []Item, cfg Config) (*State, []int) {
 		searchCols = cfg.Nth
 	}
 	FilterItems(s, cfg, searchCols)
-	if cfg.SelectFirst && len(s.TopCtx().Filtered) > 0 {
-		s.TopCtx().Index = 0
-	}
+	s.TopCtx().Index = firstRow(s.TopCtx())
 
 	return s, searchCols
+}
+
+// firstRow is where a flat list's cursor rests with nothing typed: on its first row, so
+// Enter at once picks it (FZTA-21); -1 with no rows.
+func firstRow(ctx *TreeContext) int {
+	if len(ctx.Filtered) > 0 {
+		return 0
+	}
+	return -1
+}
+
+// RestCursor puts the tree cursor where a view with nothing typed rests: on the first
+// row, so Enter at once acts on it, as it acts on the top match while typing
+// (FZTA-21). A scoped folder picker rests on nothing, since Enter there picks the
+// folder you are in (FZT-51), and so does a view with no rows.
+func RestCursor(s *State, cfg Config) {
+	ctx := s.TopCtx()
+	ctx.TreeCursor = -1
+	if !picksFolders(s, cfg) && len(TreeVisibleItems(s)) > 0 {
+		ctx.TreeCursor = 0
+	}
 }
 
 // FindInAll returns the index in allItems of a row copied out of it (a
@@ -660,7 +679,9 @@ func PushScope(s *State, itemIdx int, cfg Config, searchCols []int) {
 		resetScopedCursor(ctx)
 	}
 	FilterItems(s, cfg, searchCols)
-	if !s.ScopedView {
+	if s.ScopedView {
+		RestCursor(s, cfg)
+	} else {
 		revealFolder(s, itemIdx)
 		// Entering a folder lands on its first entry, so a one-entry folder is
 		// open-then-Enter; an empty one leaves the cursor on the folder. The
@@ -928,11 +949,14 @@ func PopScope(s *State, cfg Config, searchCols []int) {
 	if len(ctx.Scope) <= 1 && len(ctx.Query) == 0 {
 		ctx.SearchActive = false
 		ctx.Filtered = nil
-		ctx.TreeCursor = -1
 		ctx.QueryExpanded = make(map[int]bool)
+		RestCursor(s, cfg)
 	} else {
 		FilterItems(s, cfg, searchCols)
 		UpdateQueryExpansion(s)
+		if s.ScopedView {
+			RestCursor(s, cfg)
+		}
 	}
 }
 

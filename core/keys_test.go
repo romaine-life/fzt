@@ -90,7 +90,7 @@ func newKeysState(t *testing.T, f keyFixture) (*State, []int) {
 	ctx := s.TopCtx()
 	ctx.TreeExpanded = map[int]bool{}
 	ctx.QueryExpanded = map[int]bool{}
-	ctx.TreeCursor = -1
+	RestCursor(s, f.cfg)
 	for _, p := range f.steps {
 		pressKey(s, f, p, cols)
 	}
