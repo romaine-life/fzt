@@ -320,7 +320,7 @@ func NewState(items []Item, cfg Config) (*State, []int) {
 	nameColW := 0
 	for _, item := range data {
 		if len(item.Fields) > 0 {
-			w := len([]rune(item.Fields[0]))
+			w := Width(item.Fields[0])
 			if w > nameColW {
 				nameColW = w
 			}

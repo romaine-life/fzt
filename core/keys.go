@@ -682,7 +682,7 @@ func OpenKeyPopup(s *State, cfg Config, flat bool) {
 			Index:     i,
 			Action:    &ItemAction{Type: "key", Target: strconv.Itoa(i)},
 		}
-		if w := len([]rune(a.Verb)); w > nameW {
+		if w := Width(a.Verb); w > nameW {
 			nameW = w
 		}
 	}

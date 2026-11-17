@@ -66,9 +66,9 @@ func ComputeWidths(items []Item) []int {
 	widths := make([]int, maxCols)
 	for _, item := range items {
 		for i, field := range item.Fields {
-			runeLen := len([]rune(field))
-			if runeLen > widths[i] {
-				widths[i] = runeLen
+			fieldW := Width(field)
+			if fieldW > widths[i] {
+				widths[i] = fieldW
 			}
 		}
 	}
@@ -87,7 +87,7 @@ func FormatRow(fields []string, widths []int, gap int) string {
 		}
 		b.WriteString(field)
 		if i < len(fields)-1 && i < len(widths) {
-			pad := widths[i] - len([]rune(field))
+			pad := widths[i] - Width(field)
 			if pad > 0 {
 				b.WriteString(strings.Repeat(" ", pad))
 			}

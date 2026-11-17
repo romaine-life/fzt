@@ -42,6 +42,13 @@ func (sess *Session) State() *core.State {
 	return sess.state
 }
 
+// Screen is the last frame Render drew, cell by cell, for a host that draws
+// it onto its own tcell screen (MemScreen.Cell). The next Render or Resize
+// replaces it.
+func (sess *Session) Screen() *MemScreen {
+	return sess.screen
+}
+
 // NewSession creates a headless TUI session with the given items, config, and dimensions.
 // drawFlat is the rendering callback for flat (non-tree) mode.
 func NewSession(items []core.Item, cfg core.Config, w, h int, drawFlat DrawFunc) *Session {

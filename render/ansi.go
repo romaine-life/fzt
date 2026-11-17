@@ -19,6 +19,9 @@ func (m *MemScreen) ToANSI() string {
 		first := true
 
 		for x := 0; x < m.W; x++ {
+			if m.Text[y][x] == "" {
+				continue // the right half of a wide cluster, drawn by its left
+			}
 			style := m.Styles[y][x]
 			fg, bg, attrs := style.Decompose()
 
@@ -27,7 +30,7 @@ func (m *MemScreen) ToANSI() string {
 				lastFg, lastBg, lastAttrs = fg, bg, attrs
 				first = false
 			}
-			b.WriteRune(m.Grid[y][x])
+			b.WriteString(m.Text[y][x])
 		}
 		b.WriteString("\x1b[0m") // reset at end of line
 		if y < m.H-1 {

@@ -57,3 +57,13 @@ func TestFormatRow(t *testing.T) {
 		t.Errorf("expected %q, got %q", expected, row)
 	}
 }
+
+func TestComputeWidthsCountsColumnsNotRunes(t *testing.T) {
+	items := ParseLines([]string{"😀\ta", "👨‍👩‍👧 x\tb", "ab\tc"}, "\t", false, false)
+	if got := ComputeWidths(items)[0]; got != 4 {
+		t.Fatalf("name column %d, want 4 (a family emoji and \" x\")", got)
+	}
+	if got := FormatRow(items[0].Fields, ComputeWidths(items), 1); got != "😀   a" {
+		t.Fatalf("row %q", got)
+	}
+}

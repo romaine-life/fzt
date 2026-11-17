@@ -2,6 +2,7 @@ package render
 
 import (
 	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/uniseg"
 )
 
 // Canvas is the drawing target abstraction. Both tcell.Screen and the
@@ -14,9 +15,14 @@ type Canvas interface {
 }
 
 // MemScreen is a headless in-memory screen for simulation/testing.
+//
+// A cell holds a whole grapheme cluster, as a tcell cell does: Grid has its
+// first rune and Text all of it. A wide cluster (most emoji) takes its cell
+// and the next, whose Text is "" and whose Grid is a space.
 type MemScreen struct {
 	W, H    int
 	Grid    [][]rune
+	Text    [][]string
 	Styles  [][]tcell.Style
 	CursorX int
 	CursorY int
@@ -36,22 +42,49 @@ func NewMemScreen(w, h int) *MemScreen {
 		h = 200
 	}
 	grid := make([][]rune, h)
+	text := make([][]string, h)
 	styles := make([][]tcell.Style, h)
 	for y := 0; y < h; y++ {
 		grid[y] = make([]rune, w)
+		text[y] = make([]string, w)
 		styles[y] = make([]tcell.Style, w)
 		for x := 0; x < w; x++ {
 			grid[y][x] = ' '
+			text[y][x] = " "
 		}
 	}
-	return &MemScreen{W: w, H: h, Grid: grid, Styles: styles}
+	return &MemScreen{W: w, H: h, Grid: grid, Text: text, Styles: styles}
 }
 
+// SetContent puts the cluster primary+combining in cell (x, y). One wider
+// than a column takes the next cell too, or becomes a space at the right
+// edge; writing over either half of a wide cluster blanks the other half.
 func (m *MemScreen) SetContent(x, y int, primary rune, combining []rune, style tcell.Style) {
-	if x >= 0 && x < m.W && y >= 0 && y < m.H {
-		m.Grid[y][x] = primary
-		m.Styles[y][x] = style
+	if x < 0 || x >= m.W || y < 0 || y >= m.H {
+		return
 	}
+	cluster := string(primary) + string(combining)
+	wide := uniseg.StringWidth(cluster) > 1
+	if wide && x+1 >= m.W {
+		primary, cluster, wide = ' ', " ", false
+	}
+	m.clear(x, y)
+	m.Grid[y][x], m.Text[y][x], m.Styles[y][x] = primary, cluster, style
+	if wide {
+		m.clear(x+1, y)
+		m.Grid[y][x+1], m.Text[y][x+1], m.Styles[y][x+1] = ' ', "", style
+	}
+}
+
+// clear blanks cell (x, y) and whatever part of a wide cluster it shared.
+func (m *MemScreen) clear(x, y int) {
+	if m.Text[y][x] == "" && x > 0 {
+		m.Grid[y][x-1], m.Text[y][x-1] = ' ', " "
+	}
+	if x+1 < m.W && m.Text[y][x+1] == "" {
+		m.Grid[y][x+1], m.Text[y][x+1] = ' ', " "
+	}
+	m.Grid[y][x], m.Text[y][x] = ' ', " "
 }
 
 func (m *MemScreen) Size() (int, int) {
@@ -64,6 +97,26 @@ func (m *MemScreen) GetContent(x, y int) (rune, tcell.Style) {
 		return m.Grid[y][x], m.Styles[y][x]
 	}
 	return ' ', tcell.StyleDefault
+}
+
+// Cell returns cell (x, y) as tcell.Screen's GetContent does: its cluster's
+// first rune, the rest, its style, and the columns it takes. The right half
+// of a wide cluster has width 0, so a caller copying cells to a tcell screen
+// skips it.
+func (m *MemScreen) Cell(x, y int) (primary rune, combining []rune, style tcell.Style, width int) {
+	if x < 0 || x >= m.W || y < 0 || y >= m.H {
+		return ' ', nil, tcell.StyleDefault, 1
+	}
+	text := m.Text[y][x]
+	if text == "" {
+		return ' ', nil, m.Styles[y][x], 0
+	}
+	runes := []rune(text)
+	width = 1
+	if x+1 < m.W && m.Text[y][x+1] == "" {
+		width = 2
+	}
+	return runes[0], runes[1:], m.Styles[y][x], width
 }
 
 func (m *MemScreen) ShowCursor(x, y int) {
@@ -81,6 +134,7 @@ func (m *MemScreen) Clear() {
 	for y := 0; y < m.H; y++ {
 		for x := 0; x < m.W; x++ {
 			m.Grid[y][x] = ' '
+			m.Text[y][x] = " "
 			m.Styles[y][x] = tcell.StyleDefault
 		}
 	}
@@ -90,10 +144,11 @@ func (m *MemScreen) Clear() {
 func (m *MemScreen) Snapshot() string {
 	var lines []string
 	for y := 0; y < m.H; y++ {
-		line := string(m.Grid[y])
-		// Trim trailing spaces but keep the line
-		trimmed := trimRight(line)
-		lines = append(lines, trimmed)
+		var line string
+		for x := 0; x < m.W; x++ {
+			line += m.Text[y][x]
+		}
+		lines = append(lines, trimRight(line))
 	}
 	return joinLines(lines)
 }
@@ -106,7 +161,10 @@ func (m *MemScreen) StyledSnapshot() string {
 	for y := 0; y < m.H; y++ {
 		var line []rune
 		for x := 0; x < m.W; x++ {
-			ch := m.Grid[y][x]
+			ch := m.Text[y][x]
+			if ch == "" {
+				continue // the right half of a wide cluster
+			}
 			style := m.Styles[y][x]
 			fg, bg, attrs := style.Decompose()
 			isHL := fg == tcell.ColorGreen && attrs&tcell.AttrBold != 0
@@ -119,7 +177,7 @@ func (m *MemScreen) StyledSnapshot() string {
 			} else if isSel {
 				line = append(line, '[', 'S', ']')
 			}
-			line = append(line, ch)
+			line = append(line, []rune(ch)...)
 		}
 		trimmed := trimRight(string(line))
 		lines = append(lines, trimmed)
