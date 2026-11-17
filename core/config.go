@@ -47,8 +47,8 @@ type Config struct {
 	// ShowPanel reserves PanelRows rows above the search box for State.Panel,
 	// the latest command result (fzt-automate --popup). Renderer layout, and
 	// the click row math here, account for it.
-	ShowPanel bool
-	FoldersOnly      bool // folders are the selectable items — Enter on an already-scoped folder returns "select:" instead of no-op
+	ShowPanel   bool
+	FoldersOnly bool // folders are the selectable items — Enter on an already-scoped folder returns "select:" instead of no-op
 	// ScopedView shows only the folder you are in. Entering a folder replaces
 	// the view with its children instead of expanding it in place, Left goes
 	// up a level, and search covers the folder's direct children. With

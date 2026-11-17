@@ -34,9 +34,9 @@ type DirProvider struct {
 func NewDirProvider() *DirProvider {
 	return &DirProvider{
 		ExcludeDirs: map[string]bool{
-			".git":          true,
-			"node_modules":  true,
-			"$Recycle.Bin":  true,
+			".git":                      true,
+			"node_modules":              true,
+			"$Recycle.Bin":              true,
 			"System Volume Information": true,
 		},
 	}

@@ -51,9 +51,9 @@ type TreeContext struct {
 	Offset int // scroll offset
 
 	// Tree navigation
-	TreeExpanded  map[int]bool
-	TreeCursor    int
-	TreeOffset    int
+	TreeExpanded map[int]bool
+	TreeCursor   int
+	TreeOffset   int
 	// TreeReveal asks the renderer to place TreeRevealRow a fixed distance
 	// below the top of the list, since only it knows how many rows fit. Set
 	// when a search or an opened folder picks the row, not by arrow keys.
@@ -97,34 +97,34 @@ type CommandItem struct {
 
 // State holds the context stack and global flags.
 type State struct {
-	Contexts         []TreeContext // context stack. Index 0 = primary dataset. Command palette pushes on top. TopCtx() returns active (top) context.
-	Cancelled        bool          // set by Escape from root — signals render loop to exit
-	VersionRegistry  []string      // ordered version strings (frontend + engine). Consumed by the `version` palette leaves. Built by InjectCommandFolder.
-	TitleOverride    string        // when non-empty, replaces the default title in the border. Used as a console output line.
-	TitleStyle       int           // 0=default (cyan/bold), 1=success (green), 2=error (red), 3=neutral (slate), 4=nav-mode (matches prompt NavModeFg), 5=search-mode (matches prompt SearchModeFg). Controls TitleOverride color.
-	Provider         TreeProvider  // optional lazy-loader. PushScope calls LoadChildren when entering a folder with no children.
-	FrontendCommands []CommandItem // commands for the first level of the : palette. Set by ApplyConfig from Config.FrontendCommands.
-	FrontendName     string        // frontend identifier (e.g. "automate"). Drives scope title ("automate ctl" vs "fzt ctl").
-	FrontendVersion  string        // frontend version string. Registered at index 0 of VersionRegistry.
-	HidePalette      bool          // suppress the visible `:` root row (commands stay reachable by typing `:`). Set from Config.HidePalette.
-	ScopedView       bool          // show only the current scope's children. Set from Config.ScopedView by NewState.
-	TagMode          bool          // search by tag everywhere (see Config.TagMode; TagSearchOn adds TagDefault folders). Set from Config.TagMode by NewState; the `:` palette flips it.
-	IdentityLabel    string        // loaded identity (e.g. "nelson"). Emitted as a one-shot status by the :whoami palette leaf.
-	SyncIcon         string        // non-empty = show icon in top-right corner of border (e.g. "⟳" when sync available)
-	SyncNextCheck    int64         // unix timestamp — when the next background sync check fires (0 = disabled)
-	SyncTimerShown   bool          // true = show countdown to next sync check in the title bar
-	ConfigDir        string        // directory containing sync state files (menu cache, version)
-	EditMode         string        // active edit action: "add-after", "add-folder", "rename", "delete", "inspect", "" = none
-	EditBuffer       []rune        // text buffer for rename mode
-	EditTargetIdx    int           // item index being renamed (for restoring on cancel)
-	EditOrigName     string        // original name before rename (for restoring on cancel)
-	Dirty            bool          // unsaved changes exist
-	MenuVersion      int           // last known version from API, used for conflict detection on save
-	InspectTargetIdx int           // item being inspected (-1 = none)
-	InspectItemIdxs  []int         // indices of temporary property items in AllItems
-	EnvTags          []string      // environment capabilities for display condition filtering
-	Panel            Panel         // latest command result, shown above the prompt by a long-lived frontend (fzt-automate --system)
-	Frozen           bool          // a command is running: keys and clicks do nothing until the frontend unfreezes
+	Contexts         []TreeContext   // context stack. Index 0 = primary dataset. Command palette pushes on top. TopCtx() returns active (top) context.
+	Cancelled        bool            // set by Escape from root — signals render loop to exit
+	VersionRegistry  []string        // ordered version strings (frontend + engine). Consumed by the `version` palette leaves. Built by InjectCommandFolder.
+	TitleOverride    string          // when non-empty, replaces the default title in the border. Used as a console output line.
+	TitleStyle       int             // 0=default (cyan/bold), 1=success (green), 2=error (red), 3=neutral (slate), 4=nav-mode (matches prompt NavModeFg), 5=search-mode (matches prompt SearchModeFg). Controls TitleOverride color.
+	Provider         TreeProvider    // optional lazy-loader. PushScope calls LoadChildren when entering a folder with no children.
+	FrontendCommands []CommandItem   // commands for the first level of the : palette. Set by ApplyConfig from Config.FrontendCommands.
+	FrontendName     string          // frontend identifier (e.g. "automate"). Drives scope title ("automate ctl" vs "fzt ctl").
+	FrontendVersion  string          // frontend version string. Registered at index 0 of VersionRegistry.
+	HidePalette      bool            // suppress the visible `:` root row (commands stay reachable by typing `:`). Set from Config.HidePalette.
+	ScopedView       bool            // show only the current scope's children. Set from Config.ScopedView by NewState.
+	TagMode          bool            // search by tag everywhere (see Config.TagMode; TagSearchOn adds TagDefault folders). Set from Config.TagMode by NewState; the `:` palette flips it.
+	IdentityLabel    string          // loaded identity (e.g. "nelson"). Emitted as a one-shot status by the :whoami palette leaf.
+	SyncIcon         string          // non-empty = show icon in top-right corner of border (e.g. "⟳" when sync available)
+	SyncNextCheck    int64           // unix timestamp — when the next background sync check fires (0 = disabled)
+	SyncTimerShown   bool            // true = show countdown to next sync check in the title bar
+	ConfigDir        string          // directory containing sync state files (menu cache, version)
+	EditMode         string          // active edit action: "add-after", "add-folder", "rename", "delete", "inspect", "" = none
+	EditBuffer       []rune          // text buffer for rename mode
+	EditTargetIdx    int             // item index being renamed (for restoring on cancel)
+	EditOrigName     string          // original name before rename (for restoring on cancel)
+	Dirty            bool            // unsaved changes exist
+	MenuVersion      int             // last known version from API, used for conflict detection on save
+	InspectTargetIdx int             // item being inspected (-1 = none)
+	InspectItemIdxs  []int           // indices of temporary property items in AllItems
+	EnvTags          []string        // environment capabilities for display condition filtering
+	Panel            Panel           // latest command result, shown above the prompt by a long-lived frontend (fzt-automate --system)
+	Frozen           bool            // a command is running: keys and clicks do nothing until the frontend unfreezes
 	Overruns         map[string]bool // item Path -> its last run printed more than PanelLines lines; renderers mark the row. The frontend owns and persists it.
 
 	// PromptMode temporarily takes over the prompt text box for a frontend-owned
