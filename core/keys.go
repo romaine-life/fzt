@@ -48,6 +48,7 @@ var keyPresses = []keyPress{
 	{key: tcell.KeyEnd, label: "End"},
 	{key: tcell.KeyRune, ch: '`', label: "`"},
 	{key: tcell.KeyEscape, label: "Esc"},
+	{key: tcell.KeyCtrlC, label: "Ctrl+C"},
 	{key: tcell.KeyBackspace2, shift: true, label: "Shift+Backspace"},
 }
 
@@ -244,6 +245,10 @@ func unifiedEffect(s *State, cfg Config, p keyPress) (string, string, bool) {
 	}
 	inFolder := len(ctx.Scope) > 1
 	backspace := p.key == tcell.KeyBackspace2
+
+	if p.key == tcell.KeyCtrlC {
+		return "close menu", "Close the menu", true
+	}
 
 	if backspace && p.shift {
 		if atHome(s) {
@@ -488,6 +493,9 @@ func flatEffect(s *State, cfg Config, p keyPress) (string, string, bool) {
 		cur = &ctx.Filtered[ctx.Index]
 	}
 	inFolder := cfg.Tiered && len(ctx.Scope) > 1
+	if p.key == tcell.KeyCtrlC {
+		return "close menu", "Close the list", true
+	}
 	if p.shift && p.key == tcell.KeyEnter {
 		if cur != nil {
 			return selectEffect(*cur)

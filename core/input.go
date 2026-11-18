@@ -176,6 +176,9 @@ func HandleUnifiedKeyResult(s *State, key tcell.Key, ch rune, shift bool, cfg Co
 		return noActionResult()
 	}
 	s.inputArrived()
+	if key == tcell.KeyCtrlC {
+		return quit(s)
+	}
 	if KeyPopupOpen(s) {
 		return handleKeyPopup(s, key, ch, shift, cfg, searchCols)
 	}
@@ -184,6 +187,18 @@ func HandleUnifiedKeyResult(s *State, key tcell.Key, ch rune, shift bool, cfg Co
 		return noActionResult()
 	}
 	return unifiedKey(s, key, ch, shift, cfg, searchCols)
+}
+
+// quit is Ctrl+C: it closes the menu at once from any depth, mode or the
+// `/` pop-up, where Escape steps back one level at a time. A rename in
+// progress is put back first, as Escape would, so the half-typed name is
+// never what the host saves.
+func quit(s *State) ActionResult {
+	if s.EditMode == "rename" {
+		handleRenameKey(s, tcell.KeyEscape, 0)
+	}
+	s.Cancelled = true
+	return actionResult("cancel")
 }
 
 // opensKeyPopup reports whether a key opens the `/` pop-up: `/` from any
@@ -379,7 +394,8 @@ func HandlePromptModeKeyResult(s *State, key tcell.Key, ch rune) ActionResult {
 }
 
 // HandleKeyEvent processes a single key event against the TUI state (flat mode).
-// Returns "" for normal continuation, "cancel" to quit, or "select:<output>" for leaf selection.
+// Returns "" for normal continuation, "cancel" to quit (Escape from the top,
+// or Ctrl+C from anywhere), or "select:<output>" for leaf selection.
 //
 // shift reports whether Shift was held. Only Shift+Enter is observed — it
 // commits the highlighted filtered item without scope-pushing folders.
@@ -394,6 +410,9 @@ func HandleKeyEventResult(s *State, key tcell.Key, ch rune, shift bool, cfg Conf
 		return noActionResult()
 	}
 	s.inputArrived()
+	if key == tcell.KeyCtrlC {
+		return quit(s)
+	}
 	if KeyPopupOpen(s) {
 		return handleKeyPopup(s, key, ch, shift, cfg, searchCols)
 	}
