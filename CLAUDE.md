@@ -88,6 +88,7 @@ Tree state lives in `core/`. `State` holds a stack of `TreeContext` values, each
 - **Auto-expansion**: `UpdateQueryExpansion` sets `QueryExpanded` flags to reveal the top match. `SyncTreeCursorToTopMatch` positions the cursor on it.
 - **Rest**: with nothing typed, the cursor rests on the first row (`RestCursor`; a flat list's `Index` 0), so Enter at once acts on it. A scoped folder picker rests on nothing: Enter there picks the folder you are in.
 - **Hidden folders**: Items with `Hidden: true` are excluded from the visible tree but participate in search. `TreeVisibleItems` starts from a hidden folder's children (exclusive "takeover" view) when the user is scoped inside it. The `:` palette folder used to be Hidden (2026-04-19: flipped to visible so it shows as a regular row at root — discoverability over stealth). No current consumer sets `Hidden: true` on any item — suppression of the `:` palette for browser contexts uses `Config.HidePalette` (skip-injection) instead, which takes the whole subtree out of `AllItems` rather than marking it hidden. The Hidden field stays available for future uses (nested takeover views, lazy-loaded subtrees, etc.).
+- **Checklists** (`core/checklist.go`): a folder with `Item.Checklist` (YAML `checklist: true`, or set by the host) holds checkboxes. Enter, Shift+Enter or a click on one of its rows (`IsCheckRow`) ticks or unticks it (`Item.Ticked`, YAML `ticked`) instead of picking it, and the cursor moves on: to the next match while searching, with the search kept, else down a row. The rest of the menu works as usual, and a pick anywhere in a menu holding a checklist carries every ticked row (`withTicks`): `ActionResult.Items` lists them and `Action` adds each one's output on a line after the pick's. So the rows around the folder are the answers ("unsubscribe from these", "not now"). The `/` pop-up lists Enter on a checkbox as `tick` or `untick`; `render.VisibleRow` reports `checkbox` and `ticked`.
 
 ### Input handlers
 
@@ -127,6 +128,10 @@ All in `core/input.go`:
 - `gopkg.in/yaml.v3` -- YAML tree loading.
 
 ## Change Log
+
+### 2026-11-18 (checklists)
+
+- `Item.Checklist` makes a folder of checkboxes inside an ordinary menu: Enter ticks its rows, and a pick elsewhere returns the pick plus every ticked row. Built so any Claude session can hand Nelson a list of yes/no choices (the first: email senders to unsubscribe from). A whole-menu checklist with a separate finish command came first; Nelson: *"i was kinda thinking it was just one type of entry in an fzt picker, kinda like how a scope can be configured to be a tag scope, this would be a checkbox scope, with normal stuff around it"*. OpenProject FT-11.
 
 ### 2026-11-14 (Enter at rest)
 

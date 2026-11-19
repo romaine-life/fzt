@@ -19,7 +19,9 @@ type YAMLEntry struct {
 	Quick       bool        `yaml:"quick,omitempty"`
 	Input       string      `yaml:"input,omitempty"`
 	Tags        []string    `yaml:"tags,omitempty"`
-	Children    interface{} `yaml:"children,omitempty"` // []YAMLEntry or string (file path)
+	Checklist   bool        `yaml:"checklist,omitempty"` // a checkbox folder (Item.Checklist)
+	Ticked      bool        `yaml:"ticked,omitempty"`    // a checkbox row ticked as the menu opens
+	Children    interface{} `yaml:"children,omitempty"`  // []YAMLEntry or string (file path)
 }
 
 // LoadYAMLFromString parses YAML content directly without file I/O.
@@ -92,6 +94,8 @@ func flattenYAML(entries []YAMLEntry, baseDir string, depth int, parentIdx int, 
 			Quick:       e.Quick,
 			Input:       e.Input,
 			Tags:        e.Tags,
+			Checklist:   e.Checklist,
+			Ticked:      e.Ticked,
 			PropertyOf:  -1,
 		})
 

@@ -139,6 +139,9 @@ type ActionResult struct {
 	Action  string
 	Item    Item
 	HasItem bool
+	// Items are every ticked row, with a pick from a menu holding a checklist
+	// (Item.Checklist; withTicks), whose Action also lists them after the pick.
+	Items []Item
 }
 
 func noActionResult() ActionResult {
@@ -180,13 +183,13 @@ func HandleUnifiedKeyResult(s *State, key tcell.Key, ch rune, shift bool, cfg Co
 		return quit(s)
 	}
 	if KeyPopupOpen(s) {
-		return handleKeyPopup(s, key, ch, shift, cfg, searchCols)
+		return withTicks(s, cfg, handleKeyPopup(s, key, ch, shift, cfg, searchCols))
 	}
 	if opensKeyPopup(s, key, ch) {
 		OpenKeyPopup(s, cfg, false)
 		return noActionResult()
 	}
-	return unifiedKey(s, key, ch, shift, cfg, searchCols)
+	return withTicks(s, cfg, unifiedKey(s, key, ch, shift, cfg, searchCols))
 }
 
 // quit is Ctrl+C: it closes the menu at once from any depth, mode or the
@@ -223,6 +226,10 @@ func unifiedKey(s *State, key tcell.Key, ch rune, shift bool, cfg Config, search
 	// Rename mode — all input goes to EditBuffer
 	if s.EditMode == "rename" {
 		return actionResult(handleRenameKey(s, key, ch))
+	}
+
+	if tickKey(s, key) {
+		return noActionResult()
 	}
 
 	// Shift+Enter — universal confirm-select: commit whatever the cursor is on,
@@ -1082,7 +1089,7 @@ func ClickUnifiedRow(s *State, row int, cfg Config, h int) string {
 // that produced a select action when one is known.
 func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
 	if KeyPopupOpen(s) && !cfg.HidePromptBar {
-		return clickKeyPopup(s, row, cfg, h)
+		return withTicks(s, cfg, clickKeyPopup(s, row, cfg, h))
 	}
 	res := clickUnifiedRow(s, row, cfg, h)
 	if KeyPopupOpen(s) {
@@ -1090,9 +1097,9 @@ func ClickUnifiedRowResult(s *State, row int, cfg Config, h int) ActionResult {
 		if len(searchCols) == 0 {
 			searchCols = cfg.Nth
 		}
-		return finishKeyPopup(s, cfg, searchCols, res)
+		return withTicks(s, cfg, finishKeyPopup(s, cfg, searchCols, res))
 	}
-	return res
+	return withTicks(s, cfg, res)
 }
 
 // firstItemRow is the frame row of the first tree row: after the border,
@@ -1147,6 +1154,10 @@ func clickUnifiedRow(s *State, row int, cfg Config, h int) ActionResult {
 		if ctx.TreeExpanded[tr.ItemIdx] {
 			revealFolder(s, tr.ItemIdx)
 		}
+		return noActionResult()
+	}
+	if IsCheckRow(ctx, tr.Item) {
+		ToggleTick(s, tr.ItemIdx)
 		return noActionResult()
 	}
 	return selectActionResult(tr.Item, cfg)

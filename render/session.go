@@ -217,6 +217,8 @@ type VisibleRow struct {
 	Tags             []string `json:"tags"`
 	MatchedTags      []string `json:"matchedTags"` // the row's tags the current tag search resolved to
 	Keys             []string `json:"keys"`        // a `/` pop-up row's keys, drawn as keycaps
+	Checkbox         bool     `json:"checkbox"`    // a checklist folder's row (Item.Checklist): Enter ticks it
+	Ticked           bool     `json:"ticked"`      // a checkbox row that is ticked
 }
 
 // PromptState describes the prompt bar state for DOM rendering.
@@ -263,6 +265,8 @@ func (sess *Session) GetVisibleRows() []VisibleRow {
 		vr := VisibleRow{
 			Depth:    row.Item.Depth,
 			IsFolder: row.Item.HasChildren,
+			Checkbox: core.IsCheckRow(ctx, row.Item),
+			Ticked:   row.Item.Ticked && core.IsCheckRow(ctx, row.Item),
 		}
 		if len(row.Item.Fields) > 0 {
 			vr.Name = row.Item.Fields[0]

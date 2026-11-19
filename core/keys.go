@@ -55,7 +55,7 @@ var keyPresses = []keyPress{
 // verbOrder ranks the pop-up's rows: acting on the match first, then moving,
 // typing, modes and leaving.
 var verbOrder = []string{
-	"run", "pick", "open folder", "open link", "complete", "complete tag",
+	"tick", "untick", "run", "pick", "open folder", "open link", "complete", "complete tag",
 	"next match", "previous match", "walk rows", "expand folder", "close folder",
 	"go into folder", "go to parent", "type", "search", "type again",
 	"delete character", "delete forward", "move text cursor",
@@ -248,6 +248,9 @@ func unifiedEffect(s *State, cfg Config, p keyPress) (string, string, bool) {
 
 	if p.key == tcell.KeyCtrlC {
 		return "close menu", "Close the menu", true
+	}
+	if v, d, ok := tickEffect(s, p, cur); ok {
+		return v, d, ok
 	}
 
 	if backspace && p.shift {

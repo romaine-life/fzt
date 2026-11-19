@@ -123,9 +123,9 @@ func snapshot(s *State, res ActionResult) string {
 		}
 	}
 	sort.Ints(open)
-	return fmt.Sprintf("q=%q c=%d tc=%d nav=%v search=%v scope=%v open=%v ctx=%d idx=%d act=%q cancel=%v",
+	return fmt.Sprintf("q=%q c=%d tc=%d nav=%v search=%v scope=%v open=%v ctx=%d idx=%d act=%q cancel=%v ticked=%d",
 		string(ctx.Query), ctx.Cursor, ctx.TreeCursor, ctx.NavMode, ctx.SearchActive, scope, open,
-		len(s.Contexts), ctx.Index, res.Action, s.Cancelled)
+		len(s.Contexts), ctx.Index, res.Action, s.Cancelled, len(Ticked(s)))
 }
 
 func keyFixtures() []keyFixture {
@@ -155,6 +155,11 @@ func keyFixtures() []keyFixture {
 		{name: "picker typed", yaml: keysTestMenu, cfg: picker, steps: runes("wo")},
 		{name: "picker inside", yaml: keysTestMenu, cfg: picker, steps: seq(down, enter)},
 		{name: "tag search", yaml: keysTestTagged, cfg: tagged, steps: runes("tm")},
+		{name: "checklist folder", yaml: checklistMenu, cfg: tree},
+		{name: "checklist row", yaml: checklistMenu, cfg: tree, steps: enter},
+		{name: "checklist ticked row", yaml: checklistMenu, cfg: tree, steps: seq(enter, down, enter)},
+		{name: "checklist searched", yaml: checklistMenu, cfg: tree, steps: runes("news")},
+		{name: "outside checklist", yaml: checklistMenu, cfg: tree, steps: runes("unsub")},
 		{name: "flat opening", cfg: flat, flat: true},
 		{name: "flat typed", cfg: flat, flat: true, steps: runes("ws")},
 		{name: "flat walked", cfg: flat, flat: true, steps: seq(runes("ws"), down)},
