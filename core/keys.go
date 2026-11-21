@@ -48,6 +48,7 @@ var keyPresses = []keyPress{
 	{key: tcell.KeyEnd, label: "End"},
 	{key: tcell.KeyRune, ch: '`', label: "`"},
 	{key: tcell.KeyEscape, label: "Esc"},
+	{key: tcell.KeyCtrlU, label: "Ctrl+U"},
 	{key: tcell.KeyCtrlC, label: "Ctrl+C"},
 	{key: tcell.KeyBackspace2, shift: true, label: "Shift+Backspace"},
 }
@@ -58,7 +59,7 @@ var verbOrder = []string{
 	"tick", "untick", "run", "pick", "open folder", "open link", "complete", "complete tag",
 	"next match", "previous match", "walk rows", "expand folder", "close folder",
 	"go into folder", "go to parent", "type", "search", "type again",
-	"delete character", "delete forward", "move text cursor",
+	"delete character", "delete forward", "delete to start", "move text cursor",
 	"switch to normal mode", "clear search", "leave folder", "go to top", "close menu",
 }
 
@@ -248,6 +249,12 @@ func unifiedEffect(s *State, cfg Config, p keyPress) (string, string, bool) {
 
 	if p.key == tcell.KeyCtrlC {
 		return "close menu", "Close the menu", true
+	}
+	if p.key == tcell.KeyCtrlU {
+		if len(ctx.Query) > 0 {
+			return "clear search", "Clear the search", true
+		}
+		return "", "", false
 	}
 	if v, d, ok := tickEffect(s, p, cur); ok {
 		return v, d, ok
@@ -531,6 +538,14 @@ func flatEffect(s *State, cfg Config, p keyPress) (string, string, bool) {
 	case tcell.KeyDelete:
 		if ctx.Cursor < len(ctx.Query) {
 			return "delete forward", "Delete the character after the text cursor", true
+		}
+	case tcell.KeyCtrlU:
+		switch {
+		case ctx.Cursor == 0:
+		case ctx.Cursor >= len(ctx.Query):
+			return "clear search", "Clear the search", true
+		default:
+			return "delete to start", "Delete the text before the text cursor", true
 		}
 	case tcell.KeyLeft:
 		switch {

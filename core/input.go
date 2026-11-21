@@ -126,6 +126,9 @@ func handleRenameKey(s *State, key tcell.Key, ch rune) string {
 			s.EditBuffer = s.EditBuffer[:len(s.EditBuffer)-1]
 		}
 		return ""
+	case tcell.KeyCtrlU:
+		s.EditBuffer = s.EditBuffer[:0]
+		return ""
 	case tcell.KeyRune:
 		s.EditBuffer = append(s.EditBuffer, ch)
 		return ""
@@ -204,6 +207,29 @@ func quit(s *State) ActionResult {
 	return actionResult("cancel")
 }
 
+// clearQuery is Ctrl+U, the terminal's line-erase: it empties the search box
+// and leaves you typing, in the folder you are in. The tree's search always
+// types at the end of the query, so the text before the cursor is all of it.
+// An empty box is left alone; Ctrl+U never leaves a folder.
+func clearQuery(s *State, cfg Config, searchCols []int) {
+	ctx := s.TopCtx()
+	if len(ctx.Query) == 0 {
+		return
+	}
+	ctx.Query = nil
+	ctx.Cursor = 0
+	ctx.NavMode = false
+	ctx.QueryExpanded = make(map[int]bool)
+	ctx.TreeCursor = -1
+	if len(ctx.Scope) <= 1 {
+		ctx.SearchActive = false
+		ctx.Filtered = nil
+	} else {
+		FilterItems(s, cfg, searchCols)
+	}
+	clearedCursor(s, cfg)
+}
+
 // opensKeyPopup reports whether a key opens the `/` pop-up: `/` from any
 // mode of the menu. A text box an app took over (prompt mode, a rename)
 // keeps `/` as text, since what's typed there is an answer, not a search.
@@ -226,6 +252,11 @@ func unifiedKey(s *State, key tcell.Key, ch rune, shift bool, cfg Config, search
 	// Rename mode — all input goes to EditBuffer
 	if s.EditMode == "rename" {
 		return actionResult(handleRenameKey(s, key, ch))
+	}
+
+	if key == tcell.KeyCtrlU {
+		clearQuery(s, cfg, searchCols)
+		return noActionResult()
 	}
 
 	if tickKey(s, key) {
@@ -354,6 +385,13 @@ func HandlePromptModeKeyResult(s *State, key tcell.Key, ch rune) ActionResult {
 			s.PromptQuery = append(s.PromptQuery[:s.PromptCursor-1], s.PromptQuery[s.PromptCursor:]...)
 			s.PromptCursor--
 		}
+	case tcell.KeyCtrlU:
+		end := max(s.PromptCursor, s.PromptSelected)
+		if end > len(s.PromptQuery) {
+			end = len(s.PromptQuery)
+		}
+		s.PromptQuery = append(s.PromptQuery[:0], s.PromptQuery[end:]...)
+		s.PromptSelected, s.PromptCursor = 0, 0
 	case tcell.KeyDelete:
 		if s.PromptSelected > 0 {
 			s.deletePromptSelection()
@@ -507,6 +545,19 @@ func HandleKeyEventResult(s *State, key tcell.Key, ch rune, shift bool, cfg Conf
 		if ctx.Cursor < len(ctx.Query) {
 			ctx.Query = append(ctx.Query[:ctx.Cursor], ctx.Query[ctx.Cursor+1:]...)
 			FilterItems(s, cfg, searchCols)
+		}
+
+	case tcell.KeyCtrlU:
+		if ctx.Cursor > 0 {
+			ctx.Query = append(ctx.Query[:0], ctx.Query[ctx.Cursor:]...)
+			ctx.Cursor = 0
+			ctx.Offset = 0
+			FilterItems(s, cfg, searchCols)
+			if len(ctx.Filtered) > 0 {
+				ctx.Index = 0
+			} else {
+				ctx.Index = -1
+			}
 		}
 
 	case tcell.KeyLeft:
